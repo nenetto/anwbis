@@ -13,17 +13,17 @@ print "   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ "
 print "  / ____ \| | | \  /\  /  | |_) | |____) |"
 print " /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ "
 print ""
-print "		   	Amazon Account Access v1.0.0       "  
-print ""                                        
+print "		   	Amazon Account Access	 "                                          
                                           
 
  
+
 # Step 1: Prompt user for target account ID and name of role to assume
 if len(sys.argv) == 3:
     account_id_from_user = sys.argv[1]
     role_name_from_user = sys.argv[2]
     browser = 'default'
-elif len(sys.argv) == 4:
+elif len(sys.argv) >= 4:
     account_id_from_user = sys.argv[1]
     role_name_from_user = sys.argv[2]
     browser = sys.argv[3]
@@ -107,6 +107,31 @@ request_parameters += urllib.quote_plus("https://console.aws.amazon.com/")
 request_parameters += "&SigninToken=" + sign_in_token
 request_url = "https://signin.aws.amazon.com/federation"
 request_url += request_parameters
+
+# Easter Egg: Say Goodbye
+
+if len(sys.argv) == 5 and sys.argv[4] == 'goodbye':
+    print ""
+    print "          .. ..              ..."
+    print "        .' ;' ;             ;''''."
+    print "        ;| ; |;            ;;    ;"
+    print "        ;| ; |;            ;;.   ;"
+    print "        ;  ~~~~',,,,,,,    '. '  ;"
+    print "        ;    -A       ;      ';  ;"
+    print "        ;       .....'        ;   ;"
+    print "        ;      _;             ;   ;"
+    print "        ;   __(o)__.          ;   ;"
+    print "       .;  '\--\\--\        .'    ;"
+    print "     .'\ \_.._._\\......,.,.;     ;"
+    print "  .''   |       ;   ';      '    .'"
+    print " ;      |      .'    ;..,,.,,,,.'"
+    print " ;      |    .'  ...'"
+    print " '.     \  .'   ,'  \\"
+    print "   '.    ;'   .;     \\"
+    print "     '.      .'      '-'"
+    print "       '..  .'"
+    print "          '''"
+
  
 # Step 7: Use the default browser to sign in to the console using the
 # generated URL.
