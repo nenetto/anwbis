@@ -13,7 +13,7 @@ print "   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ "
 print "  / ____ \| | | \  /\  /  | |_) | |____) |"
 print " /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ "
 print ""
-print "		   	Amazon Account Access	v1.0.1   "                                          
+print "            Amazon Account Access   v1.0.2"                                          
                                           
 
  
@@ -32,7 +32,7 @@ else:
     print os.path.basename(sys.argv[0]), # script name
     print " <account_id> <role_name> <browser>"
     print ""
-    print "(browser is an optional parameter. Valid values: firefox | chrome | none (link to login) | default"
+    print "browser is an optional parameter. Valid values: firefox | chrome | none (link to login) | default"
     print ""
     exit(0)
  
@@ -44,10 +44,12 @@ iam_connection = IAMConnection()
 
 #role_session_name="AssumedRole"
 role_session_name=iam_connection.get_user()['get_user_response']['get_user_result']['user']['user_name']
+account_id=iam_connection.get_user()['get_user_response']['get_user_result']['user']['arn'].split(':')[4]
+
 print ""
 print "You are authenticated as " + role_session_name
 print ""
-mfa_serial_number = "arn:aws:iam::406362555173:mfa/"+role_session_name
+mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
 
 
  
