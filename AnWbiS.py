@@ -16,7 +16,7 @@ print "   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ "
 print "  / ____ \| | | \  /\  /  | |_) | |____) |"
 print " /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ "
 print ""
-print "	   	Amazon Account Access	v1.1.0       "                                          
+print "	   	Amazon Account Access 	v1.1.0       "                                          
                                           
 
  
