@@ -18,7 +18,7 @@ from colorama import init, Fore, Back, Style
 #
 #          Amazon Account Access
 
-version = '1.1.0'
+version = '1.1.1'
 
 # Regions to use with teleport 
 #regions = ['us-east-1', 'us-west-1', 'eu-west-1']
@@ -26,6 +26,7 @@ version = '1.1.0'
 # Project tag for filtering instances
 project_tag = 'Proyecto'
 bastion_tag = 'Bastion'
+filter_name = ''
 
 # CLI parser
 
@@ -43,7 +44,8 @@ parser.add_argument('--browser', '-b', required=False, action = 'store', help = 
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
-parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There is no easter eggs in this code, but AnWbiS can say goodbye', default=False)
+parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
+parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There are no easter eggs in this code, but AnWbiS can say goodbye', default=False)
 parser.add_argument('--verbose', '-v', action = 'store_true', help = 'prints verbosely', default=False)
 
 
@@ -93,7 +95,7 @@ def list_function(list_instances):
         colormsg ("There was an error connecting to EC2", "error")
         verbose(e)
         exit(1)
-    reservations = ec2_conn.get_all_reservations()
+    reservations = ec2_conn.get_all_reservations(filters={"tag:Name" : "*"+filter_name+"*"})
     bastions = []
     try:
         if len(reservations) > 0:
@@ -128,7 +130,7 @@ def list_function(list_instances):
                                 bastions.append(ip)
             return bastions
         else: 
-            colormsg("There is no instances for your project in the region "+region, "error")
+            colormsg("There are no instances for your project in the region "+region, "error")
             exit(1)
     except Exception, e:
         colormsg ("There was an error while listing EC2 instances", "error")
@@ -168,11 +170,15 @@ else:
 
 if args.list:
     list_instances = args.list
+    if args.filter:
+        filter_name=args.filter
 else:
     list_instances = 'none'
 
 if args.teleport:
     teleport_instance = args.teleport
+    if args.filter:
+        filter_name=args.filter
 else:
     teleport = 'none'
 
@@ -180,6 +186,7 @@ if args.region:
     region = args.region
 else:
     region = 'eu-west-1'
+
 
 project = args.project
 project = project.lower()
@@ -393,11 +400,11 @@ if args.list:
 if args.teleport:
     bastions = list_function('teleport')
     if len(bastions) == 0:
-        colormsg("Sorry, there is no bastions to connect in project "+project+" for the environment "+env, "error")
+        colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
     elif len(bastions) == 1:
         for i in bastions:
             print i
     else:
-        colormsg("There is more than one bastion in project "+project+" for the environment "+env, "normal")
+        colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
         list_function('bastion')
         colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
