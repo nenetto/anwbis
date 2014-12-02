@@ -437,11 +437,8 @@ sts_connection = STSConnection()
 verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
 colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
 
-
-anwbis_last_timestamp = 0
 json_data = None
 json_file = None
-mfa_token = ""
 
 if os.path.isfile(os.path.expanduser('~/.anwbis')):
     #print "existe"
