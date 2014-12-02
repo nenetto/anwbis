@@ -26,6 +26,8 @@ version = '1.1.1'
 # Project tag for filtering instances
 project_tag = 'Proyecto'
 bastion_tag = 'Bastion'
+
+# Filter by tag (for when args.filter is not defined)
 filter_name = ''
 
 # CLI parser
