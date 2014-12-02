@@ -4,6 +4,9 @@ import requests # "pip install requests"
 import sys, os, urllib, json, webbrowser
 import hashlib
 import re
+import os
+import json
+import time
 from boto.sts import STSConnection # AWS Python SDK--"pip install boto"
 from boto.iam import IAMConnection 
 from boto import ec2
@@ -139,6 +142,158 @@ def list_function(list_instances):
         verbose(e)
         exit(1)
     
+def save_credentials(access_key,  session_key,  session_token, role_session_name):
+
+    with open(os.path.expanduser('~/.anwbis'), 'w') as json_file:
+            json_file.write('{"anwbis_last_timestamp": '+ str(int(time.time())) +
+                ', "access_key": "'+access_key+
+                '", "role_session_name": "'+role_session_name+                
+                '" , "session_key": "'+session_key+'" , "session_token": "'+session_token+'" }') 
+            json_file.close()
+
+def get_sts_token(mfa_token, mfa_serial_number, role_session_name):
+
+    try: 
+        assumed_role_object = sts_connection.assume_role(
+            role_arn=role_arn,
+            role_session_name=role_session_name,
+            duration_seconds=900,
+            mfa_serial_number=mfa_serial_number,
+            mfa_token=mfa_token
+        )
+    except Exception, e:
+        colormsg ("There was an error assuming role", "error")
+        verbose(e)
+        exit(1)
+
+    colormsg ("Assumed the role successfully", "ok")
+     
+    # Format resulting temporary credentials into a JSON block using 
+    # known field names.
+
+    access_key = assumed_role_object.credentials.access_key
+    session_key = assumed_role_object.credentials.secret_key
+    session_token = assumed_role_object.credentials.session_token
+
+    login_to_fedaccount(access_key, session_key, session_token, role_session_name)
+
+    save_credentials(access_key, session_key, session_token, role_session_name)
+
+
+def login_to_fedaccount(access_key, session_key, session_token, role_session_name):    
+
+    json_temp_credentials = '{'
+    json_temp_credentials += '"sessionId":"' + access_key + '",'
+    json_temp_credentials += '"sessionKey":"' + session_key + '",'
+    json_temp_credentials += '"sessionToken":"' + session_token + '"'
+    json_temp_credentials += '}'
+     
+    # Make a request to the AWS federation endpoint to get a sign-in 
+    # token, passing parameters in the query string. The call requires an 
+    # Action parameter ('getSigninToken') and a Session parameter (the  
+    # JSON string that contains the temporary credentials that have 
+    # been URL-encoded).
+    request_parameters = "?Action=getSigninToken"
+    request_parameters += "&Session="
+    request_parameters += urllib.quote_plus(json_temp_credentials)
+    request_url = "https://signin.aws.amazon.com/federation"
+    request_url += request_parameters
+    r = requests.get(request_url)
+     
+    # Get the return value from the federation endpoint--a 
+    # JSON document that has a single element named 'SigninToken'.
+    sign_in_token = json.loads(r.text)["SigninToken"]
+     
+    # Create the URL that will let users sign in to the console using 
+    # the sign-in token. This URL must be used within 15 minutes of when the
+    # sign-in token was issued.
+    request_parameters = "?Action=login"
+    request_parameters += "&Issuer=" + role_session_name
+    request_parameters += "&Destination="
+    request_parameters += urllib.quote_plus("https://console.aws.amazon.com/")
+    request_parameters += "&SigninToken=" + sign_in_token
+    request_url = "https://signin.aws.amazon.com/federation"
+    request_url += request_parameters
+
+    # Easter Egg: Say Hello
+    if args.goodbye:
+        print ""
+        print "          .. ..              ..."
+        print "        .' ;' ;             ;''''."
+        print "        ;| ; |;            ;;    ;"
+        print "        ;| ; |;            ;;.   ;"
+        print "        ;  ~~~~',,,,,,,    '. '  ;"
+        print "        ;    -A       ;      ';  ;"
+        print "        ;       .....'        ;   ;"
+        print "        ;      _;             ;   ;"
+        print "        ;   __(o)__.          ;   ;"
+        print "       .;  '\--\\--\        .'    ;"
+        print "     .'\ \_.._._\\......,.,.;     ;"
+        print "  .''   |       ;   ';      '    .'"
+        print " ;      |      .'    ;..,,.,,,,.'"
+        print " ;      |    .'  ...'"
+        print " '.     \  .'   ,'  \\"
+        print "   '.    ;'   .;     \\"
+        print "     '.      .'      '-'"
+        print "       '..  .'"
+        print "          '''"
+        print ""
+        print "  Thanks for using AnWbiS. Goodbye!"
+        print ""
+     
+    # Use the browser to sign in to the console using the
+    # generated URL.
+    chrome_path = '/usr/bin/google-chrome %s'
+    firefox_path = '/usr/bin/firefox %s'
+    if browser == 'firefox':
+        try:
+            webbrowser.get(firefox_path).open(request_url)
+        except Exception, e:
+            colormsg ("There was an error while open your browser", "error")
+            verbose(e)
+            exit(1)
+    elif browser == 'chrome': 
+        try:
+            webbrowser.get(chrome_path).open(request_url)
+        except Exception, e:
+            colormsg ("There was an error while open your browser", "error")
+            verbose(e)
+            exit(1)
+    elif browser == 'default':
+        try:
+            webbrowser.open(request_url)
+        except Exception, e:
+            colormsg ("There was an error while open your browser", "error")
+            verbose(e)
+            exit(1)
+    elif browser == 'link':
+        colormsg(request_url,"normal")
+    #else: 
+    #    webbrowser.open(request_url)
+
+    # List parser for listing instances
+
+    if args.list:
+        list_function(list_instances)
+
+    # Teleport parser for connecting to bastion
+
+    if args.teleport:
+        bastions = list_function('teleport')
+        if len(bastions) == 0:
+            colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
+        elif len(bastions) == 1:
+            for i in bastions:
+                print i
+        else:
+            colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
+            list_function('bastion')
+            colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
+
+
+
+# END FUNCTIONS SECTION
+
 
 # Welcome
 if args.verbose:
@@ -282,131 +437,32 @@ sts_connection = STSConnection()
 verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
 colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
 
-# Prompt for MFA one-time-password and assume role
-mfa_token = raw_input("Enter the MFA code: ")
-try: 
-    assumed_role_object = sts_connection.assume_role(
-        role_arn=role_arn,
-        role_session_name=role_session_name,
-        mfa_serial_number=mfa_serial_number,
-        mfa_token=mfa_token
-    )
-except Exception, e:
-    colormsg ("There was an error assuming role", "error")
-    verbose(e)
-    exit(1)
 
-colormsg ("Assumed the role successfully", "ok")
- 
-# Format resulting temporary credentials into a JSON block using 
-# known field names.
-access_key = assumed_role_object.credentials.access_key
-session_key = assumed_role_object.credentials.secret_key
-session_token = assumed_role_object.credentials.session_token
-json_temp_credentials = '{'
-json_temp_credentials += '"sessionId":"' + access_key + '",'
-json_temp_credentials += '"sessionKey":"' + session_key + '",'
-json_temp_credentials += '"sessionToken":"' + session_token + '"'
-json_temp_credentials += '}'
- 
-# Make a request to the AWS federation endpoint to get a sign-in 
-# token, passing parameters in the query string. The call requires an 
-# Action parameter ('getSigninToken') and a Session parameter (the  
-# JSON string that contains the temporary credentials that have 
-# been URL-encoded).
-request_parameters = "?Action=getSigninToken"
-request_parameters += "&Session="
-request_parameters += urllib.quote_plus(json_temp_credentials)
-request_url = "https://signin.aws.amazon.com/federation"
-request_url += request_parameters
-r = requests.get(request_url)
- 
-# Get the return value from the federation endpoint--a 
-# JSON document that has a single element named 'SigninToken'.
-sign_in_token = json.loads(r.text)["SigninToken"]
- 
-# Create the URL that will let users sign in to the console using 
-# the sign-in token. This URL must be used within 15 minutes of when the
-# sign-in token was issued.
-request_parameters = "?Action=login"
-request_parameters += "&Issuer=" + role_session_name
-request_parameters += "&Destination="
-request_parameters += urllib.quote_plus("https://console.aws.amazon.com/")
-request_parameters += "&SigninToken=" + sign_in_token
-request_url = "https://signin.aws.amazon.com/federation"
-request_url += request_parameters
+anwbis_last_timestamp = 0
+json_data = None
+json_file = None
+mfa_token = ""
 
-# Easter Egg: Say Hello
-if args.goodbye:
-    print ""
-    print "          .. ..              ..."
-    print "        .' ;' ;             ;''''."
-    print "        ;| ; |;            ;;    ;"
-    print "        ;| ; |;            ;;.   ;"
-    print "        ;  ~~~~',,,,,,,    '. '  ;"
-    print "        ;    -A       ;      ';  ;"
-    print "        ;       .....'        ;   ;"
-    print "        ;      _;             ;   ;"
-    print "        ;   __(o)__.          ;   ;"
-    print "       .;  '\--\\--\        .'    ;"
-    print "     .'\ \_.._._\\......,.,.;     ;"
-    print "  .''   |       ;   ';      '    .'"
-    print " ;      |      .'    ;..,,.,,,,.'"
-    print " ;      |    .'  ...'"
-    print " '.     \  .'   ,'  \\"
-    print "   '.    ;'   .;     \\"
-    print "     '.      .'      '-'"
-    print "       '..  .'"
-    print "          '''"
-    print ""
-    print "  Thanks for using AnWbiS. Goodbye!"
-    print ""
- 
-# Use the browser to sign in to the console using the
-# generated URL.
-chrome_path = '/usr/bin/google-chrome %s'
-firefox_path = '/usr/bin/firefox %s'
-if browser == 'firefox':
-    try:
-        webbrowser.get(firefox_path).open(request_url)
-    except Exception, e:
-        colormsg ("There was an error while open your browser", "error")
-        verbose(e)
-        exit(1)
-elif browser == 'chrome': 
-    try:
-        webbrowser.get(chrome_path).open(request_url)
-    except Exception, e:
-        colormsg ("There was an error while open your browser", "error")
-        verbose(e)
-        exit(1)
-elif browser == 'default':
-    try:
-        webbrowser.open(request_url)
-    except Exception, e:
-        colormsg ("There was an error while open your browser", "error")
-        verbose(e)
-        exit(1)
-elif browser == 'link':
-    colormsg(request_url,"normal")
-#else: 
-#    webbrowser.open(request_url)
+if os.path.isfile(os.path.expanduser('~/.anwbis')):
+    #print "existe"
+    with open(os.path.expanduser('~/.anwbis')) as json_file:
+        json_data = json.load(json_file)
+        anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
-# List parser for listing instances
+    #check if the token has expired
+    if int(time.time()) - int(anwbis_last_timestamp) > 900 :
+        #print "token has expired"
+        mfa_token = raw_input("Enter the MFA code: ")
+        get_sts_token(mfa_token, mfa_serial_number, role_session_name)
 
-if args.list:
-    list_function(list_instances)
-
-# Teleport parser for connecting to bastion
-
-if args.teleport:
-    bastions = list_function('teleport')
-    if len(bastions) == 0:
-        colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
-    elif len(bastions) == 1:
-        for i in bastions:
-            print i
     else:
-        colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
-        list_function('bastion')
-        colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
+        #print "token has not expired, trying to login..."
+        login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+
+else:
+    #print ".anwbis configuration file doesnt exists"
+    # Prompt for MFA one-time-password and assume role
+    mfa_token = raw_input("Enter the MFA code: ")
+    get_sts_token(mfa_token, mfa_serial_number, role_session_name)
+
+exit(0)
