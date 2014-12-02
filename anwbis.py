@@ -90,7 +90,8 @@ def output_lines(lines):
     for line in lines:
         print line
 
-def list_function(list_instances):
+def list_function(list_instances, access_key, session_key, session_token, regions):
+
     try:
         ec2_conn = ec2.connect_to_region(region,
                     aws_access_key_id=access_key,
@@ -100,8 +101,11 @@ def list_function(list_instances):
         colormsg ("There was an error connecting to EC2", "error")
         verbose(e)
         exit(1)
+
     reservations = ec2_conn.get_all_reservations(filters={"tag:Name" : "*"+filter_name+"*"})
+
     bastions = []
+
     try:
         if len(reservations) > 0:
             if list_instances == 'all' or list_instances == 'bastion':
@@ -112,27 +116,20 @@ def list_function(list_instances):
 
             for reservation in reservations:
                 for instance in reservation.instances:
-                    if instance.state == "running" and project_tag in instance.tags:
+                    if instance.state == "running":
                         if instance.ip_address == None:
                             ip = instance.private_ip_address
                         else:
                             ip = instance.ip_address
-                        if role == 'admin':
-                            if list_instances == 'all' and bastion_tag not in instance.tags:
-                                print layout.format(instance.tags['Name'], instance.tags[project_tag], 'N/A', ip, instance.id, instance.state)
-                            elif list_instances == 'all' or list_instances == 'bastion' and bastion_tag in instance.tags:
-                                print layout.format(instance.tags['Name'], instance.tags[project_tag], instance.tags[bastion_tag], ip, instance.id, instance.state)
-                                bastions.append(ip)
-                            elif list_instances == 'teleport' and bastion_tag in instance.tags and instance.tags[bastion_tag].lower()=='true':
-                                bastions.append(ip)
-                        elif instance.tags[project_tag].lower()==project:
-                            if list_instances == 'all' and bastion_tag not in instance.tags:
-                                print layout.format(instance.tags['Name'], instance.tags[project_tag], 'N/A', ip, instance.id, instance.state)
-                            elif list_instances == 'all' or list_instances == 'bastion' and bastion_tag in instance.tags:
-                                print layout.format(instance.tags['Name'], instance.tags[project_tag], instance.tags[bastion_tag], ip, instance.id, instance.state)
-                                bastions.append(ip)
-                            elif list_instances == 'teleport' and bastion_tag in instance.tags and instance.tags[bastion_tag].lower()=='true':
-                                bastions.append(ip)
+
+                        if list_instances == 'all' and bastion_tag not in instance.tags:
+                            print layout.format(instance.tags['Name'], instance.tags[project_tag] if project_tag in instance.tags else "N/A", 'N/A', ip, instance.id, instance.state)
+                        elif list_instances == 'all' or list_instances == 'bastion' and bastion_tag in instance.tags:
+                            print layout.format(instance.tags['Name'], instance.tags[project_tag] if project_tag in instance.tags else "N/A", instance.tags[bastion_tag], ip, instance.id, instance.state)
+                            bastions.append(ip)
+                        elif list_instances == 'teleport' and bastion_tag in instance.tags and instance.tags[bastion_tag].lower()=='true':
+                            bastions.append(ip)
+
             return bastions
         else: 
             colormsg("There are no instances for your project in the region "+region, "error")
@@ -274,12 +271,12 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
     # List parser for listing instances
 
     if args.list:
-        list_function(list_instances)
+        list_function(list_instances, access_key, session_key, session_token, region)
 
     # Teleport parser for connecting to bastion
 
     if args.teleport:
-        bastions = list_function('teleport')
+        bastions = list_function('teleport', access_key, session_key, session_token)
         if len(bastions) == 0:
             colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
         elif len(bastions) == 1:
