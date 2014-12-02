@@ -43,12 +43,3 @@ $PYTHON anwbis.py $@
         exit 1
     fi
 fi
-
-#if [ $? -eq 0 ]; then
-#   ssh -i $(cat salida)
-#   exit;
-#else
-#   cat salida
-#   rm salida
-#   exit;
-#fi
