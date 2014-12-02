@@ -16,7 +16,7 @@ from colorama import init, Fore, Back, Style
 #  / ____ \| | | \  /\  /  | |_) | |____) |
 # /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ 
 #
-#          Amazon Account Access
+#          Amazon Account Access 
 
 version = '1.1.1'
 
