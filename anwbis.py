@@ -144,31 +144,28 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
     print "intentando..."
     if os.path.isfile(os.path.expanduser('~/.anwbis')):
         with open(os.path.expanduser('~/.anwbis'), 'r') as json_file:
-
-            print "fin contenido..."
+            #print "fin contenido..."
             json_file.seek(0)
-
             root_json_data = json.load(json_file)
-            print json.dumps(root_json_data)
+            #print json.dumps(root_json_data)
             json_file.close()
-            print json.dumps(root_json_data)
-
+            #print json.dumps(root_json_data)
             json_file = None
-
             with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
                 #json_file.seek(0)
                 #root_json_data = json.load(json_file)
-
-                print "se ha leido... "
-                print json.dumps(root_json_data)
-                json_data = root_json_data[project_name] = {}
-                json_data = root_json_data[project_name][environment_name] = {}
+                #print "se ha leido... "
+                #print json.dumps(root_json_data)
+                if project_name not in root_json_data:
+                    json_data = root_json_data[project_name] = {}
+                if environment_name not in root_json_data[project_name]:
+                    json_data = root_json_data[project_name][environment_name] = {}
                 json_data = root_json_data[project_name][environment_name]["anwbis_last_timestamp"] = str(int(time.time()))
                 json_data = root_json_data[project_name][environment_name]["access_key"] = access_key
                 json_data = root_json_data[project_name][environment_name]["role_session_name"] = role_session_name
                 json_data = root_json_data[project_name][environment_name]["session_key"] = session_key
                 json_data = root_json_data[project_name][environment_name]["session_token"] = session_token
-                print "cerrando..."
+                #print "cerrando..."
                 json.dump(root_json_data, json_file)
     else:
         with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
