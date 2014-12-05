@@ -139,16 +139,47 @@ def list_function(list_instances, access_key, session_key, session_token, region
         verbose(e)
         exit(1)
     
-def save_credentials(access_key,  session_key,  session_token, role_session_name):
+def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name):
 
-    with open(os.path.expanduser('~/.anwbis'), 'w') as json_file:
-            json_file.write('{"anwbis_last_timestamp": '+ str(int(time.time())) +
-                ', "access_key": "'+access_key+
-                '", "role_session_name": "'+role_session_name+                
-                '" , "session_key": "'+session_key+'" , "session_token": "'+session_token+'" }') 
+    print "intentando..."
+    if os.path.isfile(os.path.expanduser('~/.anwbis')):
+        with open(os.path.expanduser('~/.anwbis'), 'r') as json_file:
+
+            print "fin contenido..."
+            json_file.seek(0)
+
+            root_json_data = json.load(json_file)
+            print json.dumps(root_json_data)
             json_file.close()
+            print json.dumps(root_json_data)
 
-def get_sts_token(mfa_token, mfa_serial_number, role_session_name):
+            json_file = None
+
+            with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
+                #json_file.seek(0)
+                #root_json_data = json.load(json_file)
+
+                print "se ha leido... "
+                print json.dumps(root_json_data)
+                json_data = root_json_data[project_name] = {}
+                json_data = root_json_data[project_name][environment_name] = {}
+                json_data = root_json_data[project_name][environment_name]["anwbis_last_timestamp"] = str(int(time.time()))
+                json_data = root_json_data[project_name][environment_name]["access_key"] = access_key
+                json_data = root_json_data[project_name][environment_name]["role_session_name"] = role_session_name
+                json_data = root_json_data[project_name][environment_name]["session_key"] = session_key
+                json_data = root_json_data[project_name][environment_name]["session_token"] = session_token
+                print "cerrando..."
+                json.dump(root_json_data, json_file)
+    else:
+        with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
+            data = { project_name: { environment_name: {"anwbis_last_timestamp": str(int(time.time())), 
+            "access_key": access_key, 
+            "role_session_name": role_session_name, 
+            "session_key": session_key,
+            "session_token": session_token } } }
+            json.dump(data, json_file)
+
+def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name, environment_name):
 
     try: 
         assumed_role_object = sts_connection.assume_role(
@@ -174,7 +205,7 @@ def get_sts_token(mfa_token, mfa_serial_number, role_session_name):
 
     login_to_fedaccount(access_key, session_key, session_token, role_session_name)
 
-    save_credentials(access_key, session_key, session_token, role_session_name)
+    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name)
 
 
 def login_to_fedaccount(access_key, session_key, session_token, role_session_name):    
@@ -440,23 +471,32 @@ json_file = None
 if os.path.isfile(os.path.expanduser('~/.anwbis')):
     #print "existe"
     with open(os.path.expanduser('~/.anwbis')) as json_file:
-        json_data = json.load(json_file)
-        anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
+        root_json_data = json.load(json_file)
+        json_file.close()
 
-    #check if the token has expired
-    if int(time.time()) - int(anwbis_last_timestamp) > 900 :
-        #print "token has expired"
-        mfa_token = raw_input("Enter the MFA code: ")
-        get_sts_token(mfa_token, mfa_serial_number, role_session_name)
+        if project in root_json_data and env in root_json_data[project]:
+            json_data = root_json_data[project][env]
+            anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
-    else:
-        #print "token has not expired, trying to login..."
-        login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+            #check if the token has expired
+            if int(time.time()) - int(anwbis_last_timestamp) > 900 :
+                #print "token has expired"
+                mfa_token = raw_input("Enter the MFA code: ")
+                get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
+
+            else:
+                #print "token has not expired, trying to login..."
+                login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+
+        else:
+
+            mfa_token = raw_input("Enter the MFA code: ")
+            get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
 
 else:
     #print ".anwbis configuration file doesnt exists"
     # Prompt for MFA one-time-password and assume role
     mfa_token = raw_input("Enter the MFA code: ")
-    get_sts_token(mfa_token, mfa_serial_number, role_session_name)
+    get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
 
 exit(0)
