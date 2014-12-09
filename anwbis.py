@@ -139,7 +139,7 @@ def list_function(list_instances, access_key, session_key, session_token, region
         verbose(e)
         exit(1)
     
-def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name):
+def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name, role_name):
 
     print "intentando..."
     if os.path.isfile(os.path.expanduser('~/.anwbis')):
@@ -160,23 +160,25 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
                     json_data = root_json_data[project_name] = {}
                 if environment_name not in root_json_data[project_name]:
                     json_data = root_json_data[project_name][environment_name] = {}
-                json_data = root_json_data[project_name][environment_name]["anwbis_last_timestamp"] = str(int(time.time()))
-                json_data = root_json_data[project_name][environment_name]["access_key"] = access_key
-                json_data = root_json_data[project_name][environment_name]["role_session_name"] = role_session_name
-                json_data = root_json_data[project_name][environment_name]["session_key"] = session_key
-                json_data = root_json_data[project_name][environment_name]["session_token"] = session_token
+                if role_name not in root_json_data[project_name][environment_name]:
+                    json_data = root_json_data[project_name][environment_name][role_name] = {}
+                json_data = root_json_data[project_name][environment_name][role_name]["anwbis_last_timestamp"] = str(int(time.time()))
+                json_data = root_json_data[project_name][environment_name][role_name]["access_key"] = access_key
+                json_data = root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
+                json_data = root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
+                json_data = root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
                 #print "cerrando..."
                 json.dump(root_json_data, json_file)
     else:
         with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
-            data = { project_name: { environment_name: {"anwbis_last_timestamp": str(int(time.time())), 
+            data = { project_name: { environment_name: { role_name: {"anwbis_last_timestamp": str(int(time.time())), 
             "access_key": access_key, 
             "role_session_name": role_session_name, 
             "session_key": session_key,
-            "session_token": session_token } } }
+            "session_token": session_token } } } }
             json.dump(data, json_file)
 
-def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name, environment_name):
+def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
 
     try: 
         assumed_role_object = sts_connection.assume_role(
@@ -202,7 +204,7 @@ def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name,
 
     login_to_fedaccount(access_key, session_key, session_token, role_session_name)
 
-    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name)
+    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name)
 
 
 def login_to_fedaccount(access_key, session_key, session_token, role_session_name):    
@@ -471,15 +473,15 @@ if os.path.isfile(os.path.expanduser('~/.anwbis')):
         root_json_data = json.load(json_file)
         json_file.close()
 
-        if project in root_json_data and env in root_json_data[project]:
-            json_data = root_json_data[project][env]
+        if project in root_json_data and env in root_json_data[project] and role in root_json_data[project][env]:
+            json_data = root_json_data[project][env][role]
             anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
             #check if the token has expired
             if int(time.time()) - int(anwbis_last_timestamp) > 900 :
                 #print "token has expired"
                 mfa_token = raw_input("Enter the MFA code: ")
-                get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
+                get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
             else:
                 #print "token has not expired, trying to login..."
@@ -488,12 +490,13 @@ if os.path.isfile(os.path.expanduser('~/.anwbis')):
         else:
 
             mfa_token = raw_input("Enter the MFA code: ")
-            get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
+            get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
 else:
     #print ".anwbis configuration file doesnt exists"
     # Prompt for MFA one-time-password and assume role
+    print "role is " +  role
     mfa_token = raw_input("Enter the MFA code: ")
-    get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env)
+    get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
 exit(0)
