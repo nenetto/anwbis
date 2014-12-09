@@ -184,7 +184,7 @@ def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name,
         assumed_role_object = sts_connection.assume_role(
             role_arn=role_arn,
             role_session_name=role_session_name,
-            duration_seconds=900,
+            duration_seconds=3600,
             mfa_serial_number=mfa_serial_number,
             mfa_token=mfa_token
         )
@@ -478,7 +478,7 @@ if os.path.isfile(os.path.expanduser('~/.anwbis')):
             anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
             #check if the token has expired
-            if int(time.time()) - int(anwbis_last_timestamp) > 900 :
+            if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
                 #print "token has expired"
                 mfa_token = raw_input("Enter the MFA code: ")
                 get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
