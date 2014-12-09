@@ -141,7 +141,7 @@ def list_function(list_instances, access_key, session_key, session_token, region
     
 def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name, role_name):
 
-    print "intentando..."
+    #print "trying..."
     if os.path.isfile(os.path.expanduser('~/.anwbis')):
         with open(os.path.expanduser('~/.anwbis'), 'r') as json_file:
             #print "fin contenido..."
