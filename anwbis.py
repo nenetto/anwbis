@@ -8,22 +8,22 @@ import os
 import json
 import time
 from boto.sts import STSConnection # AWS Python SDK--"pip install boto"
-from boto.iam import IAMConnection 
+from boto.iam import IAMConnection
 from boto import ec2
 from colorama import init, Fore, Back, Style
 
-#             __          ___     _  _____ 
+#             __          ___     _  _____
 #     /\      \ \        / / |   (_)/ ____|
-#    /  \   _ _\ \  /\  / /| |__  _| (___  
-#   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ 
+#    /  \   _ _\ \  /\  / /| |__  _| (___
+#   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \
 #  / ____ \| | | \  /\  /  | |_) | |____) |
-# /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ 
+# /_/    \_\_| |_|\/  \/   |_.__/|_|_____/
 #
-#          Amazon Account Access 
+#          Amazon Account Access
 
-version = '1.1.1'
+version = '1.1.2'
 
-# Regions to use with teleport 
+# Regions to use with teleport
 #regions = ['us-east-1', 'us-west-1', 'eu-west-1']
 
 # Project tag for filtering instances
@@ -48,6 +48,7 @@ parser.add_argument('--browser', '-b', required=False, action = 'store', help = 
         choices=['firefox','chrome','link','default'])
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
+parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
 parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There are no easter eggs in this code, but AnWbiS can say goodbye', default=False)
@@ -131,14 +132,14 @@ def list_function(list_instances, access_key, session_key, session_token, region
                             bastions.append(ip)
 
             return bastions
-        else: 
+        else:
             colormsg("There are no instances for your project in the region "+region, "error")
             exit(1)
     except Exception, e:
         colormsg ("There was an error while listing EC2 instances", "error")
         verbose(e)
         exit(1)
-    
+
 def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name, role_name):
 
     #print "trying..."
@@ -171,16 +172,16 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
                 json.dump(root_json_data, json_file)
     else:
         with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
-            data = { project_name: { environment_name: { role_name: {"anwbis_last_timestamp": str(int(time.time())), 
-            "access_key": access_key, 
-            "role_session_name": role_session_name, 
+            data = { project_name: { environment_name: { role_name: {"anwbis_last_timestamp": str(int(time.time())),
+            "access_key": access_key,
+            "role_session_name": role_session_name,
             "session_key": session_key,
             "session_token": session_token } } } }
             json.dump(data, json_file)
 
 def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
 
-    try: 
+    try:
         assumed_role_object = sts_connection.assume_role(
             role_arn=role_arn,
             role_session_name=role_session_name,
@@ -194,8 +195,8 @@ def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name,
         exit(1)
 
     colormsg ("Assumed the role successfully", "ok")
-     
-    # Format resulting temporary credentials into a JSON block using 
+
+    # Format resulting temporary credentials into a JSON block using
     # known field names.
 
     access_key = assumed_role_object.credentials.access_key
@@ -207,18 +208,18 @@ def get_sts_token(mfa_token, mfa_serial_number, role_session_name, project_name,
     save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name)
 
 
-def login_to_fedaccount(access_key, session_key, session_token, role_session_name):    
+def login_to_fedaccount(access_key, session_key, session_token, role_session_name):
 
     json_temp_credentials = '{'
     json_temp_credentials += '"sessionId":"' + access_key + '",'
     json_temp_credentials += '"sessionKey":"' + session_key + '",'
     json_temp_credentials += '"sessionToken":"' + session_token + '"'
     json_temp_credentials += '}'
-     
-    # Make a request to the AWS federation endpoint to get a sign-in 
-    # token, passing parameters in the query string. The call requires an 
-    # Action parameter ('getSigninToken') and a Session parameter (the  
-    # JSON string that contains the temporary credentials that have 
+
+    # Make a request to the AWS federation endpoint to get a sign-in
+    # token, passing parameters in the query string. The call requires an
+    # Action parameter ('getSigninToken') and a Session parameter (the
+    # JSON string that contains the temporary credentials that have
     # been URL-encoded).
     request_parameters = "?Action=getSigninToken"
     request_parameters += "&Session="
@@ -226,12 +227,12 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
     request_url = "https://signin.aws.amazon.com/federation"
     request_url += request_parameters
     r = requests.get(request_url)
-     
-    # Get the return value from the federation endpoint--a 
+
+    # Get the return value from the federation endpoint--a
     # JSON document that has a single element named 'SigninToken'.
     sign_in_token = json.loads(r.text)["SigninToken"]
-     
-    # Create the URL that will let users sign in to the console using 
+
+    # Create the URL that will let users sign in to the console using
     # the sign-in token. This URL must be used within 15 minutes of when the
     # sign-in token was issued.
     request_parameters = "?Action=login"
@@ -267,7 +268,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
         print ""
         print "  Thanks for using AnWbiS. Goodbye!"
         print ""
-     
+
     # Use the browser to sign in to the console using the
     # generated URL.
     chrome_path = '/usr/bin/google-chrome %s'
@@ -279,7 +280,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
             exit(1)
-    elif browser == 'chrome': 
+    elif browser == 'chrome':
         try:
             webbrowser.get(chrome_path).open(request_url)
         except Exception, e:
@@ -295,7 +296,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
             exit(1)
     elif browser == 'link':
         colormsg(request_url,"normal")
-    #else: 
+    #else:
     #    webbrowser.open(request_url)
 
     # List parser for listing instances
@@ -349,7 +350,7 @@ else:
 
 if args.browser:
     browser = args.browser
-else: 
+else:
     browser = 'none'
 
 if args.list:
@@ -358,6 +359,9 @@ if args.list:
         filter_name=args.filter
 else:
     list_instances = 'none'
+
+if args.profile:
+    profile_name = args.profile
 
 if args.teleport:
     teleport_instance = args.teleport
@@ -378,11 +382,14 @@ verbose("Proyect: "+project)
 
 env = args.env
 env = env.lower()
-verbose("Environment: "+env)    
+verbose("Environment: "+env)
 
 # Get Corp Account ID and set session name
 
-iam_connection = IAMConnection()
+if args.profile:
+    iam_connection = IAMConnection(profile_name=args.profile)
+else:
+    iam_connection = IAMConnection()
 
 #role_session_name=iam_connection.get_user()['get_user_response']['get_user_result']['user']['user_name']
 try:
@@ -433,10 +440,10 @@ policy = re.split('"', policy)
 for i in policy:
     result_filter = re.search (role_filter, i)
     if result_filter:
-        delegated_arn.append(i) 
+        delegated_arn.append(i)
 
 if len(delegated_arn) == 0:
-    colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error") 
+    colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error")
     exit(1)
 
 elif len(delegated_arn) == 1:
@@ -456,7 +463,7 @@ mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
 role_arn = "arn:aws:iam::" + account_id_from_user + ":role/"
 role_arn += role_name_from_user
 
- 
+
 # Connect to AWS STS and then call AssumeRole. This returns temporary security credentials.
 sts_connection = STSConnection()
 
