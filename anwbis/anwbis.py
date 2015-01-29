@@ -21,7 +21,7 @@ from colorama import init, Fore, Back, Style
 #
 #          Amazon Account Access
 
-version = '1.1.5'
+version = '1.2.0'
 
 # Regions to use with teleport
 #regions = ['us-east-1', 'us-west-1', 'eu-west-1']
@@ -302,32 +302,19 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
 
     # List parser for listing instances
 
-    if args.list:
-        list_function(list_instances, access_key, session_key, session_token, region)
-
-    # Teleport parser for connecting to bastion
-
-    if args.teleport:
-        bastions = list_function('teleport', access_key, session_key, session_token)
-        if len(bastions) == 0:
-            colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
-        elif len(bastions) == 1:
-            for i in bastions:
-                print i
-        else:
-            colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
-            list_function('bastion')
-            colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
-
 
 
 # END FUNCTIONS SECTION
 class Anwbis:
-    def controller(self):
-
-        global browser
-        global list_instances
+    def token(self):
         global region
+        global role
+        global browser
+        global access_key
+        global session_key
+        global session_token
+
+
 
         # Welcome
         if args.verbose:
@@ -354,33 +341,13 @@ class Anwbis:
         else:
             role = 'developer'
 
-        if args.browser:
-            browser = args.browser
-        else:
-            browser = 'none'
-
-        if args.list:
-            list_instances = args.list
-            if args.filter:
-                filter_name=args.filter
-        else:
-            list_instances = 'none'
-
         if args.profile:
             profile_name = args.profile
-
-        if args.teleport:
-            teleport_instance = args.teleport
-            if args.filter:
-                filter_name=args.filter
-        else:
-            teleport = 'none'
 
         if args.region:
             region = args.region
         else:
             region = 'eu-west-1'
-
 
         project = args.project
         project = project.lower()
@@ -389,6 +356,11 @@ class Anwbis:
         env = args.env
         env = env.lower()
         verbose("Environment: "+env)
+
+        if args.browser:
+            browser = args.browser
+        else:
+            browser = 'none'
 
         # Get Corp Account ID and set session name
 
@@ -469,7 +441,6 @@ class Anwbis:
         role_arn = "arn:aws:iam::" + account_id_from_user + ":role/"
         role_arn += role_name_from_user
 
-
         # Connect to AWS STS and then call AssumeRole. This returns temporary security credentials.
         if args.profile:
             sts_connection = STSConnection(profile_name=args.profile)
@@ -518,8 +489,52 @@ class Anwbis:
 
         return sts_token
 
+    def controller(self):
+
+        global browser
+        global list_instances
+
+        if args.list:
+            list_instances = args.list
+            if args.filter:
+                filter_name=args.filter
+        else:
+            list_instances = 'none'
+
+        if args.teleport:
+            teleport_instance = args.teleport
+            if args.filter:
+                filter_name=args.filter
+        else:
+            teleport = 'none'
+
+        if args.list:
+            list_function(list_instances, access_key, session_key, session_token, region)
+
+        # Teleport parser for connecting to bastion
+
+        if args.teleport:
+            bastions = list_function('teleport', access_key, session_key, session_token)
+            if len(bastions) == 0:
+                colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
+            elif len(bastions) == 1:
+                for i in bastions:
+                    print i
+            else:
+                colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
+                list_function('bastion')
+                colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
+
+
     #Runs all the functions
     def main(self):
+        global access_key
+        global session_key
+        global session_token
+        token = self.token()
+        access_key = token['access_key']
+        session_key = token['session_key']
+        session_token = token['session_token']
         self.controller()
 #This idiom means the below code only runs when executed from command line
 
