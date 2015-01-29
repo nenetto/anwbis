@@ -206,6 +206,8 @@ def get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_s
 
     save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name)
 
+    return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
+
 
 def login_to_fedaccount(access_key, session_key, session_token, role_session_name):
 
@@ -322,6 +324,8 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
 # END FUNCTIONS SECTION
 class Anwbis:
     def controller(self):
+
+        global browser
 
         # Welcome
         if args.verbose:
@@ -491,25 +495,26 @@ class Anwbis:
                     if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
                         #print "token has expired"
                         mfa_token = raw_input("Enter the MFA code: ")
-                        get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
                     else:
                         #print "token has not expired, trying to login..."
                         login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+                        sts_token = {'access_key':json_data["access_key"], 'session_key':json_data["session_key"], 'session_token': json_data["session_token"], 'role_session_name': json_data["role_session_name"]}
 
                 else:
 
                     mfa_token = raw_input("Enter the MFA code: ")
-                    get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+                    sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
         else:
             #print ".anwbis configuration file doesnt exists"
             # Prompt for MFA one-time-password and assume role
             print "role is " +  role
             mfa_token = raw_input("Enter the MFA code: ")
-            get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+            sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
-        exit(0)
+        return sts_token['access_key']
 
     #Runs all the functions
     def main(self):
