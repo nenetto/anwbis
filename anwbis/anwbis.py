@@ -326,6 +326,8 @@ class Anwbis:
     def controller(self):
 
         global browser
+        global list_instances
+        global region
 
         # Welcome
         if args.verbose:
