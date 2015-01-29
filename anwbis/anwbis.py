@@ -21,7 +21,7 @@ from colorama import init, Fore, Back, Style
 #
 #          Amazon Account Access
 
-version = '1.1.5-SNAPSHOT'
+version = '1.2.0-SNAPSHOT'
 
 # Regions to use with teleport
 #regions = ['us-east-1', 'us-west-1', 'eu-west-1']
