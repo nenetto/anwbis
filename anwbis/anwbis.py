@@ -514,7 +514,7 @@ class Anwbis:
             mfa_token = raw_input("Enter the MFA code: ")
             sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
-        return sts_token['access_key']
+        return sts_token
 
     #Runs all the functions
     def main(self):
