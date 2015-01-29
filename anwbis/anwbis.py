@@ -349,20 +349,6 @@ class Anwbis:
         else:
             region = 'eu-west-1'
 
-
-        project = args.project
-        project = project.lower()
-        verbose("Proyect: "+project)
-
-        env = args.env
-        env = env.lower()
-        verbose("Environment: "+env)
-
-        if args.region:
-            region = args.region
-        else:
-            region = 'eu-west-1'
-
         project = args.project
         project = project.lower()
         verbose("Proyect: "+project)
