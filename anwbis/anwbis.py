@@ -21,7 +21,7 @@ from colorama import init, Fore, Back, Style
 #
 #          Amazon Account Access
 
-version = '1.1.3-SNAPSHOT'
+version = '1.1.4-SNAPSHOT'
 
 # Regions to use with teleport
 #regions = ['us-east-1', 'us-west-1', 'eu-west-1']
@@ -321,197 +321,200 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
 
 
 # END FUNCTIONS SECTION
+class Anwbis:
+    def controller(self):
 
-def controller():
+        # Welcome
+        if args.verbose:
+            print ""
+            print "             __          ___     _  _____ "
+            print "     /\      \ \        / / |   (_)/ ____|"
+            print "    /  \   _ _\ \  /\  / /| |__  _| (___  "
+            print "   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ "
+            print "  / ____ \| | | \  /\  /  | |_) | |____) |"
+            print " /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ "
+            print ""
+            print "       Amazon Account Access "+ version
+            print ""
 
-    # Welcome
-    if args.verbose:
-        print ""
-        print "             __          ___     _  _____ "
-        print "     /\      \ \        / / |   (_)/ ____|"
-        print "    /  \   _ _\ \  /\  / /| |__  _| (___  "
-        print "   / /\ \ | '_ \ \/  \/ / | '_ \| |\___ \ "
-        print "  / ____ \| | | \  /\  /  | |_) | |____) |"
-        print " /_/    \_\_| |_|\/  \/   |_.__/|_|_____/ "
-        print ""
-        print "       Amazon Account Access "+ version
-        print ""
+        else:
+            print ""
+            print "AnWbiS Amazon Account Access "+ version
+            print ""
 
-    else:
-        print ""
-        print "AnWbiS Amazon Account Access "+ version
-        print ""
+        # Set values from parser
 
-    # Set values from parser
+        if args.role:
+            role = args.role
+        else:
+            role = 'developer'
 
-    if args.role:
-        role = args.role
-    else:
-        role = 'developer'
+        if args.browser:
+            browser = args.browser
+        else:
+            browser = 'none'
 
-    if args.browser:
-        browser = args.browser
-    else:
-        browser = 'none'
+        if args.list:
+            list_instances = args.list
+            if args.filter:
+                filter_name=args.filter
+        else:
+            list_instances = 'none'
 
-    if args.list:
-        list_instances = args.list
-        if args.filter:
-            filter_name=args.filter
-    else:
-        list_instances = 'none'
+        if args.profile:
+            profile_name = args.profile
 
-    if args.profile:
-        profile_name = args.profile
+        if args.teleport:
+            teleport_instance = args.teleport
+            if args.filter:
+                filter_name=args.filter
+        else:
+            teleport = 'none'
 
-    if args.teleport:
-        teleport_instance = args.teleport
-        if args.filter:
-            filter_name=args.filter
-    else:
-        teleport = 'none'
-
-    if args.region:
-        region = args.region
-    else:
-        region = 'eu-west-1'
-
-
-    project = args.project
-    project = project.lower()
-    verbose("Proyect: "+project)
-
-    env = args.env
-    env = env.lower()
-    verbose("Environment: "+env)
-
-    # Get Corp Account ID and set session name
-
-    if args.profile:
-        iam_connection = IAMConnection(profile_name=args.profile)
-    else:
-        iam_connection = IAMConnection()
-
-    #role_session_name=iam_connection.get_user()['get_user_response']['get_user_result']['user']['user_name']
-    try:
-        role_session_name=iam_connection.get_user().get_user_response.get_user_result.user.user_name
-    except Exception, e:
-        colormsg ("There was an error retrieving your session_name. Check your credentials", "error")
-        verbose(e)
-        exit(1)
-
-    #account_id=iam_connection.get_user()['get_user_response']['get_user_result']['user']['arn'].split(':')[4]
-    try:
-        account_id=iam_connection.get_user().get_user_response.get_user_result.user.arn.split(':')[4]
-    except Exception, e:
-        colormsg ("There was an error retrieving your account id. Check your credentials", "error")
-        verbose(e)
-        exit(1)
-
-    # Regexp for groups and policies. Set the policy name used by your organization
-
-    group_name='corp-'+project+'-master-'+role
-    policy_name='Delegated_Roles'
-    role_filter = env+'-'+project+'-delegated-'+role
-
-    # Step 1: Prompt user for target account ID and name of role to assume
-
-    # IAM groups
-    verbose("Getting IAM group info:")
-    delegated_policy = []
-    group_policy = []
-    delegated_arn = []
-
-    try:
-        policy = iam_connection.get_group_policy( group_name, policy_name)
-    except Exception, e:
-        colormsg ("There was an error retrieving your group policy. Check your credentials, group_name and policy_name", "error")
-        verbose(e)
-        exit(1)
-    policy = policy.get_group_policy_response.get_group_policy_result.policy_document
-    policy = urllib.unquote(policy)
-    group_policy.append(config_line_policy("iam:grouppolicy", group_name, policy_name, policy))
-
-    output_lines(group_policy)
-
-    # Format policy and search by role_filter
-
-    policy = re.split('"', policy)
-
-    for i in policy:
-        result_filter = re.search (role_filter, i)
-        if result_filter:
-            delegated_arn.append(i)
-
-    if len(delegated_arn) == 0:
-        colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error")
-        exit(1)
-
-    elif len(delegated_arn) == 1:
-        account_id_from_user = delegated_arn[0].split(':')[4]
-        role_name_from_user = delegated_arn[0].split('/')[1]
-
-    else:
-        colormsg("There are two or more policies matching your input", "error")
-        exit(1)
-
-    colormsg("You are authenticated as " + role_session_name, "ok")
-
-    #MFA
-    mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
-
-    # Create an ARN out of the information provided by the user.
-    role_arn = "arn:aws:iam::" + account_id_from_user + ":role/"
-    role_arn += role_name_from_user
+        if args.region:
+            region = args.region
+        else:
+            region = 'eu-west-1'
 
 
-    # Connect to AWS STS and then call AssumeRole. This returns temporary security credentials.
-    sts_connection = STSConnection()
+        project = args.project
+        project = project.lower()
+        verbose("Proyect: "+project)
 
-    # Assume the role
-    verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
-    colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
+        env = args.env
+        env = env.lower()
+        verbose("Environment: "+env)
 
-    json_data = None
-    json_file = None
+        # Get Corp Account ID and set session name
 
-    if os.path.isfile(os.path.expanduser('~/.anwbis')):
-        #print "existe"
-        with open(os.path.expanduser('~/.anwbis')) as json_file:
-            root_json_data = json.load(json_file)
-            json_file.close()
+        if args.profile:
+            iam_connection = IAMConnection(profile_name=args.profile)
+        else:
+            iam_connection = IAMConnection()
 
-            if project in root_json_data and env in root_json_data[project] and role in root_json_data[project][env]:
-                json_data = root_json_data[project][env][role]
-                anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
+        #role_session_name=iam_connection.get_user()['get_user_response']['get_user_result']['user']['user_name']
+        try:
+            role_session_name=iam_connection.get_user().get_user_response.get_user_result.user.user_name
+        except Exception, e:
+            colormsg ("There was an error retrieving your session_name. Check your credentials", "error")
+            verbose(e)
+            exit(1)
 
-                #check if the token has expired
-                if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
-                    #print "token has expired"
+        #account_id=iam_connection.get_user()['get_user_response']['get_user_result']['user']['arn'].split(':')[4]
+        try:
+            account_id=iam_connection.get_user().get_user_response.get_user_result.user.arn.split(':')[4]
+        except Exception, e:
+            colormsg ("There was an error retrieving your account id. Check your credentials", "error")
+            verbose(e)
+            exit(1)
+
+        # Regexp for groups and policies. Set the policy name used by your organization
+
+        group_name='corp-'+project+'-master-'+role
+        policy_name='Delegated_Roles'
+        role_filter = env+'-'+project+'-delegated-'+role
+
+        # Step 1: Prompt user for target account ID and name of role to assume
+
+        # IAM groups
+        verbose("Getting IAM group info:")
+        delegated_policy = []
+        group_policy = []
+        delegated_arn = []
+
+        try:
+            policy = iam_connection.get_group_policy( group_name, policy_name)
+        except Exception, e:
+            colormsg ("There was an error retrieving your group policy. Check your credentials, group_name and policy_name", "error")
+            verbose(e)
+            exit(1)
+        policy = policy.get_group_policy_response.get_group_policy_result.policy_document
+        policy = urllib.unquote(policy)
+        group_policy.append(config_line_policy("iam:grouppolicy", group_name, policy_name, policy))
+
+        output_lines(group_policy)
+
+        # Format policy and search by role_filter
+
+        policy = re.split('"', policy)
+
+        for i in policy:
+            result_filter = re.search (role_filter, i)
+            if result_filter:
+                delegated_arn.append(i)
+
+        if len(delegated_arn) == 0:
+            colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error")
+            exit(1)
+
+        elif len(delegated_arn) == 1:
+            account_id_from_user = delegated_arn[0].split(':')[4]
+            role_name_from_user = delegated_arn[0].split('/')[1]
+
+        else:
+            colormsg("There are two or more policies matching your input", "error")
+            exit(1)
+
+        colormsg("You are authenticated as " + role_session_name, "ok")
+
+        #MFA
+        mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
+
+        # Create an ARN out of the information provided by the user.
+        role_arn = "arn:aws:iam::" + account_id_from_user + ":role/"
+        role_arn += role_name_from_user
+
+
+        # Connect to AWS STS and then call AssumeRole. This returns temporary security credentials.
+        sts_connection = STSConnection()
+
+        # Assume the role
+        verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
+        colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
+
+        json_data = None
+        json_file = None
+
+        if os.path.isfile(os.path.expanduser('~/.anwbis')):
+            #print "existe"
+            with open(os.path.expanduser('~/.anwbis')) as json_file:
+                root_json_data = json.load(json_file)
+                json_file.close()
+
+                if project in root_json_data and env in root_json_data[project] and role in root_json_data[project][env]:
+                    json_data = root_json_data[project][env][role]
+                    anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
+
+                    #check if the token has expired
+                    if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
+                        #print "token has expired"
+                        mfa_token = raw_input("Enter the MFA code: ")
+                        get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
+
+                    else:
+                        #print "token has not expired, trying to login..."
+                        login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+
+                else:
+
                     mfa_token = raw_input("Enter the MFA code: ")
                     get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
-                else:
-                    #print "token has not expired, trying to login..."
-                    login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
+        else:
+            #print ".anwbis configuration file doesnt exists"
+            # Prompt for MFA one-time-password and assume role
+            print "role is " +  role
+            mfa_token = raw_input("Enter the MFA code: ")
+            get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
-            else:
+        exit(0)
 
-                mfa_token = raw_input("Enter the MFA code: ")
-                get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
-
-    else:
-        #print ".anwbis configuration file doesnt exists"
-        # Prompt for MFA one-time-password and assume role
-        print "role is " +  role
-        mfa_token = raw_input("Enter the MFA code: ")
-        get_sts_token(mfa_token, mfa_serial_number, role_session_name, project, env, role)
-
-    exit(0)
-
-#Runs all the functions
-def main():
-    controller()
+    #Runs all the functions
+    def main(self):
+        self.controller()
 #This idiom means the below code only runs when executed from command line
+
 if __name__ == '__main__':
-    main()
+    a = Anwbis()
+    a.main()
+
