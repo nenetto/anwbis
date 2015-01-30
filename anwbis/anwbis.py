@@ -41,7 +41,7 @@ parser.add_argument('--project', '-p', required=True, action = 'store', help = '
 parser.add_argument('--env', '-e', required=True, action = 'store', help = 'MANTATORY: Set environment', default=False,
         choices=['dev', 'pre', 'pro', 'sbx', 'val', 'corp'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
-        choices=['developer', 'admin'])
+        choices=['developer', 'devops', 'admin'])
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
