@@ -206,8 +206,31 @@ def get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_s
 
     save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name)
 
+    #and save them on the CLI config file .aws/credentials
+
+    save_cli_credentials(access_key, session_key, session_token, 'anwbis')
+
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
+def save_cli_credentials(access_key, session_key, session_token, section_name):
+
+    import ConfigParser
+    import os
+
+    config = ConfigParser.RawConfigParser()
+
+    config.read(os.path.expanduser('~/.aws/credentials'))
+
+    if not config.has_section(section_name):
+        config.add_section(section_name)
+
+    config.set(section_name, 'aws_access_key_id', access_key)
+    config.set(section_name, 'aws_secret_access_key', session_key)
+    config.set(section_name, 'aws_session_token', session_token)
+
+    # Writing our configuration file to 'example.cfg'
+    with open(os.path.expanduser('~/.aws/credentials'), 'wb') as configfile:
+        config.write(configfile)
 
 def login_to_fedaccount(access_key, session_key, session_token, role_session_name):
 
