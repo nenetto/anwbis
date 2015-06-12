@@ -6,6 +6,7 @@
 
 Anwbis is a CLI tool to create temporary credentials to log into a AWS delegated account. For this you must have a central account where you add all your users (corp account) with the only permissions to assume roles cross-accounts, then the user must be added to the group that you want to let access the delegated account. 
 
+![Squema for auth](static/esquema.png "squema for auth")
 
 ## Installation
 
@@ -24,6 +25,10 @@ Using /usr/lib/python2.7/site-packages/colorama-0.3.3-py2.7.egg
 Finished processing dependencies for anwbis==1.2.0
 [luix@boxita anwbis]$
 '''
+
+## Setup Corp credentials
+
+An easy way to setup your credentials for the main (corp) account, is to install boto and set them on the **default** profile.
 
 ## Running the CLI
 
@@ -47,3 +52,30 @@ Enter the MFA code: 471265
 [ OK ] Assumed the role successfully
 
 '''
+
+## Generating AccessKeys/SecretKeys
+
+Everytime you run Anwbis and succesfully generate a new session token, your boto credentials (~/.aws/credentials) for the profile **anwbis** will be updated...
+
+```
+[luix@boxita ~]$ cat .aws/credentials
+[default]
+aws_access_key_id = XXXXXXX
+aws_secret_access_key = XXXXXXX
+
+[anwbis]
+aws_access_key_id = XXXXXXX
+aws_secret_access_key = XXXXXXX
+aws_session_token = XXXXXXX
+
+[luix@boxita ~]$
+```
+
+This means you can use the AWS cli with the profile flag like this
+```
+[luix@boxita ~]$ aws s3 ls --profile anwbis
+```
+and you will be running this command agains the delegated account.
+
+
+If you are doing tests in local (i.e. for development), use the anwbis profile in your configuration, or overwrite the **default** profile with the values in anwbis profile.
