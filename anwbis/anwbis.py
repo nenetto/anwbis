@@ -550,7 +550,7 @@ class Anwbis:
 
 
     #Runs all the functions
-    def main(self):
+    def __init__(self):
         global access_key
         global session_key
         global session_token
@@ -563,5 +563,4 @@ class Anwbis:
 
 if __name__ == '__main__':
     a = Anwbis()
-    a.main()
 

@@ -14,6 +14,9 @@ config = {
         'install_requires': ['colorama >= 0.3.2', 'argparse >=1.2.2', 'boto >= 2.24.0'],
         'packages': ['anwbis'],
         'scripts': [],
-        'name': 'anwbis'
+        'name': 'anwbis',
+        'entry_points': {
+                'console_scripts': [ 'anwbis = anwbis.anwbis:Anwbis' ]
+        }
 }
 setup(**config)
