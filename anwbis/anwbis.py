@@ -45,7 +45,7 @@ parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Se
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
-        choices=['firefox','chrome','link','default'])
+            choices=['firefox','chrome','link','default', 'chromium'])
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
 parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
@@ -297,6 +297,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
     # generated URL.
     chrome_path = '/usr/bin/google-chrome %s'
     firefox_path = '/usr/bin/firefox %s'
+    chromium_path = '/usr/bin/chromium %s'
     if browser == 'firefox':
         try:
             webbrowser.get(firefox_path).open(request_url)
@@ -311,6 +312,13 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
             exit(1)
+    elif browser == 'chromium':
+        try:
+            webbrowser.get(chromium_path).open(request_url)
+        except Exception, e:
+            colormsg ("There was an error while open your browser", "error")
+            verbose(e)
+            exit(1)            
     elif browser == 'default':
         try:
             webbrowser.open(request_url)
