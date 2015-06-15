@@ -208,7 +208,7 @@ def get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_s
 
     #and save them on the CLI config file .aws/credentials
 
-    save_cli_credentials(access_key, session_key, session_token, 'anwbis')
+    save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]))
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
