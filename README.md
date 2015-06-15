@@ -55,15 +55,19 @@ Enter the MFA code: 471265
 
 ## Generating AccessKeys/SecretKeys
 
-Everytime you run Anwbis and succesfully generate a new session token, your boto credentials (~/.aws/credentials) for the profile **anwbis** will be updated...
+Everytime you run Anwbis and succesfully generate a new session token, the role PROJECT-ENV-ROLE your boto credentials (~/.aws/credentials) will be updated... i.e.
 
 ```
+[luix@boxita ~]$ anwbis -p datalab -e dev -r admin -b firefox
+
+....
+
 [luix@boxita ~]$ cat .aws/credentials
 [default]
 aws_access_key_id = XXXXXXX
 aws_secret_access_key = XXXXXXX
 
-[anwbis]
+[datalab-dev-admin]
 aws_access_key_id = XXXXXXX
 aws_secret_access_key = XXXXXXX
 aws_session_token = XXXXXXX
@@ -73,9 +77,8 @@ aws_session_token = XXXXXXX
 
 This means you can use the AWS cli with the profile flag like this
 ```
-[luix@boxita ~]$ aws s3 ls --profile anwbis
+[luix@boxita ~]$ aws s3 ls --profile datalab-dev-admin
 ```
-and you will be running this command agains the delegated account.
+and you will be running this command against the delegated account.
 
-
-If you are doing tests in local (i.e. for development), use the anwbis profile in your configuration, or overwrite the **default** profile with the values in anwbis profile.
+If you are doing tests in local (i.e. for development), use the anwbis profile in your configuration, or overwrite the **default** profile with the values in generated profile.
