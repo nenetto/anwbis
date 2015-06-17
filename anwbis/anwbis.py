@@ -227,6 +227,7 @@ def save_cli_credentials(access_key, session_key, session_token, section_name):
     config.set(section_name, 'aws_access_key_id', access_key)
     config.set(section_name, 'aws_secret_access_key', session_key)
     config.set(section_name, 'aws_session_token', session_token)
+    config.set(section_name, 'aws_security_token', session_token)
 
     # Writing our configuration file to 'example.cfg'
     with open(os.path.expanduser('~/.aws/credentials'), 'wb') as configfile:
