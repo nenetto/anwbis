@@ -180,8 +180,14 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
             "session_token": session_token } } } }
             json.dump(data, json_file)
 
-def get_sts_token(sts_connection, role_arn, mfa_token=None, mfa_serial_number=None, role_session_name, project_name, environment_name, role_name):
+def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
     try:
+
+        if not args.nomfa:
+            mfa_token = raw_input("Enter the MFA code: ")
+        else:
+            mfa_token = None
+
         assumed_role_object = sts_connection.assume_role(
             role_arn=role_arn,
             role_session_name=role_session_name,
@@ -468,7 +474,10 @@ class Anwbis:
         colormsg("You are authenticated as " + role_session_name, "ok")
 
         #MFA
-        mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
+        if not args.nomfa:
+            mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
+        else:
+            mfa_serial_number = None
 
         # Create an ARN out of the information provided by the user.
         role_arn = "arn:aws:iam::" + account_id_from_user + ":role/"
@@ -481,11 +490,12 @@ class Anwbis:
             sts_connection = STSConnection()
 
         # Assume the role
-        verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
-        colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
-
-        json_data = None
-        json_file = None
+        if not args.nomfa:
+            verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
+            colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
+        else:
+            verbose("Assuming role "+ role_arn+ "...")
+            colormsg("Assuming role "+ role+ " from project "+ project+ " from user "+ role_session_name+ "...", "normal")
 
         if os.path.isfile(os.path.expanduser('~/.anwbis')):
             #print "existe"
@@ -501,12 +511,7 @@ class Anwbis:
                     if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
 
                         #print "token has expired"
-                        if args.nomfa:
-                            sts_token = get_sts_token(sts_connection, role_arn, role_session_name, project, env, role)
-
-                        else:
-                            mfa_token = raw_input("Enter the MFA code: ")
-                            sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
 
                     else:
                         #print "token has not expired, trying to login..."
@@ -514,20 +519,12 @@ class Anwbis:
                         sts_token = {'access_key':json_data["access_key"], 'session_key':json_data["session_key"], 'session_token': json_data["session_token"], 'role_session_name': json_data["role_session_name"]}
 
                 else:
-
-                    mfa_token = raw_input("Enter the MFA code: ")
-                    sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+                    sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
 
         else:
             #print ".anwbis configuration file doesnt exists"
             print "role is " +  role
-
-            if args.nomfa:
-                sts_token = get_sts_token(sts_connection, role_arn, role_session_name, project, env, role)
-            else:
-                # Prompt for MFA one-time-password and assume role
-                mfa_token = raw_input("Enter the MFA code: ")
-                sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+            sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
 
         return sts_token
 
