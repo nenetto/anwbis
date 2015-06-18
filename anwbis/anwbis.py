@@ -44,6 +44,7 @@ parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Se
         choices=['developer', 'devops', 'admin'])
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
+parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
 parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
             choices=['firefox','chrome','link','default', 'chromium'])
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
@@ -179,7 +180,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
             "session_token": session_token } } } }
             json.dump(data, json_file)
 
-def get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
+def get_sts_token(sts_connection, role_arn, mfa_token=None, mfa_serial_number=None, role_session_name, project_name, environment_name, role_name):
     try:
         assumed_role_object = sts_connection.assume_role(
             role_arn=role_arn,
@@ -498,9 +499,14 @@ class Anwbis:
 
                     #check if the token has expired
                     if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
+
                         #print "token has expired"
-                        mfa_token = raw_input("Enter the MFA code: ")
-                        sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+                        if args.nomfa:
+                            sts_token = get_sts_token(sts_connection, role_arn, role_session_name, project, env, role)
+
+                        else:
+                            mfa_token = raw_input("Enter the MFA code: ")
+                            sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
                     else:
                         #print "token has not expired, trying to login..."
@@ -514,10 +520,14 @@ class Anwbis:
 
         else:
             #print ".anwbis configuration file doesnt exists"
-            # Prompt for MFA one-time-password and assume role
             print "role is " +  role
-            mfa_token = raw_input("Enter the MFA code: ")
-            sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
+
+            if args.nomfa:
+                sts_token = get_sts_token(sts_connection, role_arn, role_session_name, project, env, role)
+            else:
+                # Prompt for MFA one-time-password and assume role
+                mfa_token = raw_input("Enter the MFA code: ")
+                sts_token = get_sts_token(sts_connection, role_arn, mfa_token, mfa_serial_number, role_session_name, project, env, role)
 
         return sts_token
 
