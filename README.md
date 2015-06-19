@@ -1,3 +1,4 @@
+![Logo](static/logo.png "Logo")
 
 # ANWBIS - Amazon Account Access
 ==================================================
