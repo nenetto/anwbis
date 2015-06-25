@@ -1,6 +1,5 @@
-
-# ANWBIS - Amazon Account Access
-==================================================
+![Logo](static/logo.png "Logo")
+# Amazon Account Access
 
 ## Introduction
 
