@@ -35,20 +35,6 @@ and the requests library
 $ pip install requests
 ```
 
-and set your Beeva Corporate accounts, you need to ask them to the sysadmin of your project
-
-```
-$ aws configure
-AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
-AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-Default region name [None]: us-west-2
-Default output format [None]: json
-```
-
-while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
-
-
-
 ## Installation
 
 simply generate the egg and install it with the setup.py program, to do this be sure you have **python 2.X** installed (python3 is unsupported), so you might need to use **python, python2, or python2.6, o python2.7** depending on your python install, in the following example I used **python2**.
@@ -72,8 +58,14 @@ Finished processing dependencies for anwbis==1.2.0
 An easy way to setup your credentials for the main (corp) account, is to install boto and set them on the **default** profile with the following command
 
 ```
-[luix@boxita ~]$ aws configure
+$ aws configure
+AWS Access Key ID [None]: AKIAIOSFO.....
+AWS Secret Access Key [None]: wJalrXUtnFE......
+Default region name [None]: eu-west-1
+Default output format [None]: json
 ```
+
+while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
 
 ## Running the CLI
 
