@@ -8,6 +8,48 @@ Anwbis is a CLI tool to create temporary credentials to log into a AWS delegated
 
 ![Squema for auth](static/esquema.png "squema for auth")
 
+## Dependencies
+
+before creating the anwbis python egg and installing it, you need to install the AWS CLI, you need to make sure you have python2.x installed on your system, this means th
+
+```
+[luix@boxita ~]$ python --version
+Python 3.4.3
+[luix@boxita ~]$ python2.7 --version
+Python 2.7.10
+[luix@boxita ~]$ python2 --version
+Python 2.7.10
+[luix@boxita ~]$
+```
+
+it's possible that you already have installed python, just make sure which is your primary python environment, as anwbis **IS ONLY** compatible with python 2.x, 
+
+Then you need to install the AWS Command Line Interface (also called **boto**)
+
+```
+$ pip install awscli
+```
+
+and the requests library
+
+```
+$ pip install requests
+```
+
+and set your Beeva Corporate accounts, you need to ask them to the sysadmin of your project
+
+```
+$ aws configure
+AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
+AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Default region name [None]: us-west-2
+Default output format [None]: json
+```
+
+while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
+
+
+
 ## Installation
 
 simply generate the egg and install it with the setup.py program, to do this be sure you have **python 2.X** installed (python3 is unsupported), so you might need to use **python, python2, or python2.6, o python2.7** depending on your python install, in the following example I used **python2**.
