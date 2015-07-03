@@ -23,6 +23,9 @@ Python 2.7.10
 
 it's possible that you already have installed python, just make sure which is your primary python environment, as anwbis **IS ONLY** compatible with python 2.x, 
 
+You need to install setuptools package, so the bootstraping can create the CLI command. Please [go here](https://pypi.python.org/pypi/setuptools) and follow the installation instructions for your system.
+
+
 Then you need to install the AWS Command Line Interface (also called **boto**)
 
 ```
@@ -51,6 +54,15 @@ writing top-level names to anwbis.egg-info/top_level.txt
 Using /usr/lib/python2.7/site-packages/colorama-0.3.3-py2.7.egg
 Finished processing dependencies for anwbis==1.2.0
 [luix@boxita anwbis]$
+```
+
+### Boto Version
+
+If you have an old versión of boto or the CLI installed on your system, you need to make sure its the cli 1.7.34 at least (currently latest) since AWS changed how the CLI and boto look for the credentials in your system, you can read more about this [here](http://blogs.aws.amazon.com/security/post/Tx3D6U6WSFGOK2H/A-New-and-Standardized-Way-to-Manage-Credentials-in-the-AWS-SDKs).
+
+```
+[luix@boxita .aws]$ aws --version
+aws-cli/1.7.34 Python/3.4.3 Linux/4.0.5-1-ARCH
 ```
 
 ## Setup Corp credentials
