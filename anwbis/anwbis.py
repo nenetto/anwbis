@@ -23,18 +23,7 @@ from colorama import init, Fore, Back, Style
 
 version = '1.2.0'
 
-# Regions to use with teleport
-#regions = ['us-east-1', 'us-west-1', 'eu-west-1']
-
-# Project tag for filtering instances
-project_tag = 'Proyecto'
-bastion_tag = 'Bastion'
-
-# Filter by tag (for when args.filter is not defined)
-filter_name = ''
-
 # CLI parser
-
 parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
 parser.add_argument('--version', action='version', version='%(prog)s'+version)
 parser.add_argument('--project', '-p', required=True, action = 'store', help = 'MANDATORY: Project to connect', default=False)
@@ -54,6 +43,12 @@ parser.add_argument('--teleport', '-t', required=False, action = 'store', help =
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
 parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There are no easter eggs in this code, but AnWbiS can say goodbye', default=False)
 parser.add_argument('--verbose', '-v', action = 'store_true', help = 'prints verbosely', default=False)
+parser.add_argument('--project-tag', required=False, action='store',
+                    help='Optional: Project tag for filtering instances', default='')
+parser.add_argument('--bastion-tag', required=False, action='store',
+                    help='Optional: Bastion tag for filtering instances', default='Bastion')
+parser.add_argument('--name-tag', required=False, action='store',
+                    help='Optional: Name tag for filtering instances', default='')
 
 
 args = parser.parse_args()
@@ -124,12 +119,12 @@ def list_function(list_instances, access_key, session_key, session_token, region
                         else:
                             ip = instance.ip_address
 
-                        if list_instances == 'all' and bastion_tag not in instance.tags:
-                            print layout.format(instance.tags['Name'], instance.tags[project_tag] if project_tag in instance.tags else "N/A", 'N/A', ip, instance.id, instance.state)
-                        elif list_instances == 'all' or list_instances == 'bastion' and bastion_tag in instance.tags:
-                            print layout.format(instance.tags['Name'], instance.tags[project_tag] if project_tag in instance.tags else "N/A", instance.tags[bastion_tag], ip, instance.id, instance.state)
+                        if list_instances == 'all' and args.bastion_tag not in instance.tags:
+                            print layout.format(instance.tags['Name'], instance.tags[args.project_tag] if args.project_tag in instance.tags else "N/A", 'N/A', ip, instance.id, instance.state)
+                        elif list_instances == 'all' or list_instances == 'bastion' and args.bastion_tag in instance.tags:
+                            print layout.format(instance.tags['Name'], instance.tags[args.project_tag] if args.project_tag in instance.tags else "N/A", instance.tags[args.bastion_tag], ip, instance.id, instance.state)
                             bastions.append(ip)
-                        elif list_instances == 'teleport' and bastion_tag in instance.tags and instance.tags[bastion_tag].lower()=='true':
+                        elif list_instances == 'teleport' and args.bastion_tag in instance.tags and instance.tags[args.bastion_tag].lower()=='true':
                             bastions.append(ip)
 
             return bastions
