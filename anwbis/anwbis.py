@@ -141,43 +141,54 @@ def list_function(list_instances, access_key, session_key, session_token, region
         verbose(e)
         exit(1)
 
-def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name, role_name):
+def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name,
+                     role_name, local_file_path="~/.anwbis"):
+    """
+    Persists temporal credentials in a local file
+    :param access_key: Access Key Id
+    :param session_key: Secret Key
+    :param session_token: Temporal token
+    :param role_session_name: Session role name
+    :param project_name: Project
+    :param environment_name: Environment (dev, pro, pre...)
+    :param role_name: Role name
+    """
+    if os.path.isfile(os.path.expanduser(local_file_path)):
 
-    #print "trying..."
-    if os.path.isfile(os.path.expanduser('~/.anwbis')):
-        with open(os.path.expanduser('~/.anwbis'), 'r') as json_file:
-            #print "fin contenido..."
+        with open(os.path.expanduser(local_file_path), 'r') as json_file:
             json_file.seek(0)
             root_json_data = json.load(json_file)
-            #print json.dumps(root_json_data)
             json_file.close()
-            #print json.dumps(root_json_data)
-            json_file = None
-            with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
-                #json_file.seek(0)
-                #root_json_data = json.load(json_file)
-                #print "se ha leido... "
-                #print json.dumps(root_json_data)
-                if project_name not in root_json_data:
-                    json_data = root_json_data[project_name] = {}
-                if environment_name not in root_json_data[project_name]:
-                    json_data = root_json_data[project_name][environment_name] = {}
-                if role_name not in root_json_data[project_name][environment_name]:
-                    json_data = root_json_data[project_name][environment_name][role_name] = {}
-                json_data = root_json_data[project_name][environment_name][role_name]["anwbis_last_timestamp"] = str(int(time.time()))
-                json_data = root_json_data[project_name][environment_name][role_name]["access_key"] = access_key
-                json_data = root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
-                json_data = root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
-                json_data = root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
-                #print "cerrando..."
+
+        with open(os.path.expanduser(local_file_path), 'w+') as json_file:
+            if project_name not in root_json_data:
+                root_json_data[project_name] = {}
+            if environment_name not in root_json_data[project_name]:
+                root_json_data[project_name][environment_name] = {}
+            if role_name not in root_json_data[project_name][environment_name]:
+                root_json_data[project_name][environment_name][role_name] = {}
+                root_json_data[project_name][environment_name][role_name]["anwbis_last_timestamp"] = str(int(time
+                                                                                                             .time()))
+                root_json_data[project_name][environment_name][role_name]["access_key"] = access_key
+                root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
+                root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
+                root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
                 json.dump(root_json_data, json_file)
     else:
-        with open(os.path.expanduser('~/.anwbis'), 'w+') as json_file:
-            data = { project_name: { environment_name: { role_name: {"anwbis_last_timestamp": str(int(time.time())),
-            "access_key": access_key,
-            "role_session_name": role_session_name,
-            "session_key": session_key,
-            "session_token": session_token } } } }
+        with open(os.path.expanduser(local_file_path), 'w+') as json_file:
+            data = {
+                project_name: {
+                    environment_name: {
+                        role_name: {
+                            "anwbis_last_timestamp": str(int(time.time())),
+                            "access_key": access_key,
+                            "role_session_name": role_session_name,
+                            "session_key": session_key,
+                            "session_token": session_token
+                        }
+                    }
+                }
+            }
             json.dump(data, json_file)
 
 def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
