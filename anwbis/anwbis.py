@@ -162,13 +162,14 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
                 root_json_data[project_name][environment_name] = {}
             if role_name not in root_json_data[project_name][environment_name]:
                 root_json_data[project_name][environment_name][role_name] = {}
-                root_json_data[project_name][environment_name][role_name]["anwbis_last_timestamp"] = str(int(time
+
+            root_json_data[project_name][environment_name][role_name]["anwbis_last_timestamp"] = str(int(time
                                                                                                              .time()))
-                root_json_data[project_name][environment_name][role_name]["access_key"] = access_key
-                root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
-                root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
-                root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
-                json.dump(root_json_data, json_file)
+            root_json_data[project_name][environment_name][role_name]["access_key"] = access_key
+            root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
+            root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
+            root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
+            json.dump(root_json_data, json_file)
     else:
         with open(os.path.expanduser(local_file_path), 'w+') as json_file:
             data = {
