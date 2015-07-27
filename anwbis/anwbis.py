@@ -482,9 +482,8 @@ class Anwbis:
 
         #MFA
         if not args.nomfa:
-            mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
             iam_connection = IAMConnection()
-            mfa_devices_r = hola = iam_connection.get_all_mfa_devices(role_session_name)
+            mfa_devices_r = iam_connection.get_all_mfa_devices(role_session_name)
             mfa_serial_number =  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices[0].serial_number
         else:
             mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
