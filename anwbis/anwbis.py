@@ -30,7 +30,7 @@ parser.add_argument('--project', '-p', required=True, action = 'store', help = '
 parser.add_argument('--env', '-e', required=True, action = 'store', help = 'MANTATORY: Set environment', default=False,
         choices=['dev', 'pre', 'pro', 'sbx', 'val', 'corp'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
-        choices=['developer', 'devops', 'admin'])
+        choices=['developer', 'devops', 'user', 'admin'])
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
@@ -333,7 +333,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
         except Exception, e:
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
-            exit(1)            
+            exit(1)
     elif browser == 'default':
         try:
             webbrowser.open(request_url)
