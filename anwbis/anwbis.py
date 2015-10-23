@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
 parser.add_argument('--version', action='version', version='%(prog)s'+version)
 parser.add_argument('--project', '-p', required=True, action = 'store', help = 'MANDATORY: Project to connect', default=False)
 parser.add_argument('--env', '-e', required=True, action = 'store', help = 'MANTATORY: Set environment', default=False,
-        choices=['dev', 'pre', 'pro', 'sbx', 'val', 'corp'])
+        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
         choices=['developer', 'devops', 'user', 'admin'])
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
