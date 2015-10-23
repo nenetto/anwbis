@@ -224,6 +224,11 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]))
 
+    print "If you want to use your credentials from the environment, you can export:"
+    print "export AWS_ACCESS_KEY_ID='%s'" % access_key
+    print "export AWS_SECRET_ACCESS_KEY='%s'" % session_key
+    print "export AWS_SESSION_TOKEN='%s'" % session_token
+
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
 def save_cli_credentials(access_key, session_key, session_token, section_name):
