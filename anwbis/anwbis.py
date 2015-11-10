@@ -139,7 +139,7 @@ def list_function(list_instances, access_key, session_key, session_token, region
         exit(1)
 
 def save_credentials(access_key,  session_key,  session_token, role_session_name, project_name, environment_name,
-                     role_name, local_file_path="~/.anwbis"):
+                     role_name, region, local_file_path="~/.anwbis"):
     """
     Persists temporal credentials in a local file
     :param access_key: Access Key Id
@@ -149,6 +149,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
     :param project_name: Project
     :param environment_name: Environment (dev, pro, pre...)
     :param role_name: Role name
+    :param region: Default region
     """
     if os.path.isfile(os.path.expanduser(local_file_path)):
 
@@ -171,6 +172,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
             root_json_data[project_name][environment_name][role_name]["role_session_name"] = role_session_name
             root_json_data[project_name][environment_name][role_name]["session_key"] = session_key
             root_json_data[project_name][environment_name][role_name]["session_token"] = session_token
+            root_json_data[project_name][environment_name][role_name]["region"] = region
             json.dump(root_json_data, json_file)
     else:
         with open(os.path.expanduser(local_file_path), 'w+') as json_file:
@@ -182,7 +184,8 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
                             "access_key": access_key,
                             "role_session_name": role_session_name,
                             "session_key": session_key,
-                            "session_token": session_token
+                            "session_token": session_token,
+                            "region": region
                         }
                     }
                 }
@@ -226,11 +229,11 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     login_to_fedaccount(access_key, session_key, session_token, role_session_name)
 
-    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name)
+    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name, region)
 
     #and save them on the CLI config file .aws/credentials
 
-    save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]))
+    save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]), region)
 
     print ""
     print "If you want to use your credentials from the environment with an external Tool (for instance, Terraform), you can use the following instructions:"
@@ -244,7 +247,7 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
-def save_cli_credentials(access_key, session_key, session_token, section_name):
+def save_cli_credentials(access_key, session_key, session_token, section_name, region):
 
     import ConfigParser
     import os
@@ -260,6 +263,7 @@ def save_cli_credentials(access_key, session_key, session_token, section_name):
     config.set(section_name, 'aws_secret_access_key', session_key)
     config.set(section_name, 'aws_session_token', session_token)
     config.set(section_name, 'aws_security_token', session_token)
+    config.set(section_name, 'aws_default_region', region)
 
     # Writing our configuration file to 'example.cfg'
     with open(os.path.expanduser('~/.aws/credentials'), 'wb') as configfile:
