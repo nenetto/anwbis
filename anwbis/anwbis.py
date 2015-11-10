@@ -34,6 +34,7 @@ parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Se
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
+parser.add_argument('--refresh', required=False, action='store_true', help='Refresh token even if there is a valid one', default=False)
 parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
             choices=['firefox','chrome','link','default', 'chromium'])
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
@@ -192,16 +193,22 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
         if not args.nomfa:
             mfa_token = raw_input("Enter the MFA code: ")
+            assumed_role_object = sts_connection.assume_role(
+                role_arn=role_arn,
+                role_session_name=role_session_name,
+                duration_seconds=3600,
+                mfa_serial_number=mfa_serial_number,
+                mfa_token=mfa_token
+            )
+
         else:
             mfa_token = None
 
-        assumed_role_object = sts_connection.assume_role(
-            role_arn=role_arn,
-            role_session_name=role_session_name,
-            duration_seconds=3600,
-            mfa_serial_number=mfa_serial_number,
-            mfa_token=mfa_token
-        )
+            assumed_role_object = sts_connection.assume_role(
+                role_arn=role_arn,
+                role_session_name=role_session_name,
+                duration_seconds=3600,
+            )
     except Exception, e:
         colormsg ("There was an error assuming role", "error")
         verbose(e)
@@ -224,10 +231,15 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]))
 
-    print "If you want to use your credentials from the environment, you can export:"
+    print ""
+    print "If you want to use your credentials from the environment with an external Tool (for instance, Terraform), you can use the following instructions:"
+    print "WARNING: If you use it in the same shell as anwbis exported variables takes precedence over the .aws/credentials, so use it carefully"
+    print ""
     print "export AWS_ACCESS_KEY_ID='%s'" % access_key
     print "export AWS_SECRET_ACCESS_KEY='%s'" % session_key
     print "export AWS_SESSION_TOKEN='%s'" % session_token
+    print "export AWS_DEFAULT_REGION='%s'" % region
+    print ""
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
@@ -522,7 +534,7 @@ class Anwbis:
                     anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
                     #check if the token has expired
-                    if int(time.time()) - int(anwbis_last_timestamp) > 3600 :
+                    if int(time.time()) - int(anwbis_last_timestamp) > 3600 or args.refresh:
 
                         #print "token has expired"
                         sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
