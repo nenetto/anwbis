@@ -11,6 +11,7 @@ from boto.sts import STSConnection # AWS Python SDK--"pip install boto"
 from boto.iam import IAMConnection
 from boto import ec2
 from colorama import init, Fore, Back, Style
+from requests.packages.urllib3 import disable_warnings
 
 #             __          ___     _  _____
 #     /\      \ \        / / |   (_)/ ____|
@@ -369,6 +370,7 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
 
 # END FUNCTIONS SECTION
 class Anwbis:
+    disable_warnings()
     def token(self):
         global region
         global role
