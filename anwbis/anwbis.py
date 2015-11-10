@@ -41,6 +41,7 @@ parser.add_argument('--browser', '-b', required=False, action = 'store', help = 
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
 parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
+parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
 parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There are no easter eggs in this code, but AnWbiS can say goodbye', default=False)
@@ -235,15 +236,16 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     save_cli_credentials(access_key, session_key, session_token, '-'.join([project_name, environment_name, role_name]), region)
 
-    print ""
-    print "If you want to use your credentials from the environment with an external Tool (for instance, Terraform), you can use the following instructions:"
-    print "WARNING: If you use it in the same shell as anwbis exported variables takes precedence over the .aws/credentials, so use it carefully"
-    print ""
-    print "export AWS_ACCESS_KEY_ID='%s'" % access_key
-    print "export AWS_SECRET_ACCESS_KEY='%s'" % session_key
-    print "export AWS_SESSION_TOKEN='%s'" % session_token
-    print "export AWS_DEFAULT_REGION='%s'" % region
-    print ""
+    if args.stdout:
+        print ""
+        print "If you want to use your credentials from the environment with an external Tool (for instance, Terraform), you can use the following instructions:"
+        print "WARNING: If you use it in the same shell as anwbis exported variables takes precedence over the .aws/credentials, so use it carefully"
+        print ""
+        print "export AWS_ACCESS_KEY_ID='%s'" % access_key
+        print "export AWS_SECRET_ACCESS_KEY='%s'" % session_key
+        print "export AWS_SESSION_TOKEN='%s'" % session_token
+        print "export AWS_DEFAULT_REGION='%s'" % region
+        print ""
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
