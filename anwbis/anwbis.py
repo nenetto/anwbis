@@ -41,6 +41,7 @@ parser.add_argument('--browser', '-b', required=False, action = 'store', help = 
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
 parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
+parser.add_argument('--duration', type=int, required=False, action = 'store', help = 'Optional: Token Duration. Default=3600', default='3600')
 parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
@@ -193,7 +194,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
             }
             json.dump(data, json_file)
 
-def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name):
+def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
     try:
 
         if not args.nomfa:
@@ -201,7 +202,7 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
             assumed_role_object = sts_connection.assume_role(
                 role_arn=role_arn,
                 role_session_name=role_session_name,
-                duration_seconds=3600,
+                duration_seconds=token_expiration,
                 mfa_serial_number=mfa_serial_number,
                 mfa_token=mfa_token
             )
@@ -212,7 +213,7 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
             assumed_role_object = sts_connection.assume_role(
                 role_arn=role_arn,
                 role_session_name=role_session_name,
-                duration_seconds=3600,
+                duration_seconds=token_expiration,
             )
     except Exception, e:
         colormsg ("There was an error assuming role", "error")
@@ -433,6 +434,15 @@ class Anwbis:
         else:
             browser = 'none'
 
+
+        if args.duration > 3600:
+            token_expiration=3600
+        elif args.duration < 900:
+            token_expiration=900
+        else:
+            token_expiration=args.duration
+
+
         # Get Corp Account ID and set session name
 
         if args.profile:
@@ -542,10 +552,10 @@ class Anwbis:
                     anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
                     #check if the token has expired
-                    if int(time.time()) - int(anwbis_last_timestamp) > 3600 or args.refresh:
+                    if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
 
                         #print "token has expired"
-                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
                     else:
                         #print "token has not expired, trying to login..."
@@ -553,12 +563,12 @@ class Anwbis:
                         sts_token = {'access_key':json_data["access_key"], 'session_key':json_data["session_key"], 'session_token': json_data["session_token"], 'role_session_name': json_data["role_session_name"]}
 
                 else:
-                    sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
+                    sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
         else:
             #print ".anwbis configuration file doesnt exists"
             print "role is " +  role
-            sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role)
+            sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
         return sts_token
 
