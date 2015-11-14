@@ -22,7 +22,7 @@ from requests.packages.urllib3 import disable_warnings
 #
 #          Amazon Account Access
 
-version = '1.2.0'
+version = '1.2.1'
 
 # CLI parser
 parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
