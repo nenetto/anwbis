@@ -41,7 +41,7 @@ parser.add_argument('--browser', '-b', required=False, action = 'store', help = 
 parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
         choices=['all', 'bastion'])
 parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
-parser.add_argument('--duration', type=int, required=False, action = 'store', help = 'Optional: Token Duration. Default=3600', default='3600')
+parser.add_argument('--duration', type=int, required=False, action = 'store', help = 'Optional: Token Duration. Default=3600', default=3600)
 parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
@@ -517,9 +517,13 @@ class Anwbis:
 
         #MFA
         if not args.nomfa:
-            iam_connection = IAMConnection()
+            iam_connection = IAMConnection(profile_name=args.profile)
             mfa_devices_r = iam_connection.get_all_mfa_devices(role_session_name)
-            mfa_serial_number =  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices[0].serial_number
+            if  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices:
+                mfa_serial_number =  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices[0].serial_number
+            else:
+                colormsg("You don't have MFA devices associated with our user", "error")
+                exit(1)
         else:
             mfa_serial_number = "arn:aws:iam::"+account_id+":mfa/"+role_session_name
 
