@@ -517,7 +517,6 @@ class Anwbis:
 
         #MFA
         if not args.nomfa:
-            iam_connection = IAMConnection(profile_name=args.profile)
             mfa_devices_r = iam_connection.get_all_mfa_devices(role_session_name)
             if  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices:
                 mfa_serial_number =  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices[0].serial_number
