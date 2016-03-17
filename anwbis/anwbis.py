@@ -32,6 +32,7 @@ parser.add_argument('--env', '-e', required=True, action = 'store', help = 'MANT
         choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
         choices=['developer', 'devops', 'user', 'admin', 'audit', 'contractor'])
+parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
@@ -197,24 +198,42 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
 def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
     try:
 
-        if not args.nomfa:
+        if not args.nomfa:            
             mfa_token = raw_input("Enter the MFA code: ")
-            assumed_role_object = sts_connection.assume_role(
-                role_arn=role_arn,
-                role_session_name=role_session_name,
-                duration_seconds=token_expiration,
-                mfa_serial_number=mfa_serial_number,
-                mfa_token=mfa_token
-            )
+            if args.contractor:
+                assumed_role_object = sts_connection.assume_role(
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                    mfa_serial_number=mfa_serial_number,
+                    mfa_token=mfa_token,
+                    external_id=role
+                )
+            else:
+                assumed_role_object = sts_connection.assume_role(
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                    mfa_serial_number=mfa_serial_number,
+                    mfa_token=mfa_token
+                )
 
         else:
             mfa_token = None
+            if args.contractor:
+                assumed_role_object = sts_connection.assume_role(
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                    external_id=role
+                )
+            else:
+                assumed_role_object = sts_connection.assume_role(
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                )
 
-            assumed_role_object = sts_connection.assume_role(
-                role_arn=role_arn,
-                role_session_name=role_session_name,
-                duration_seconds=token_expiration,
-            )
     except Exception, e:
         colormsg ("There was an error assuming role", "error")
         verbose(e)
@@ -409,7 +428,14 @@ class Anwbis:
         # Set values from parser
 
         if args.role:
-            role = args.role
+            if args.role == 'contractor' and not args.contractor:
+                colormsg ("When using role contractor you must provide --contractor (-c) flag with the contractor policy to asume", "error")
+                exit(1)
+            elif args.role == 'contractor' and args.contractor:
+                role = args.role+'-'+args.contractor
+                verbose("Asuming contractor role: "+ args.role+'-'+args.contractor)
+            else:
+                role = args.role
         else:
             role = 'developer'
 
