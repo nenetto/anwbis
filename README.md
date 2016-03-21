@@ -5,6 +5,8 @@
 
 Anwbis is a CLI tool to create temporary credentials to log into a AWS delegated account. For this you must have a central account where you add all your users (corporate account) with the only permission to assume roles cross-accounts, then the user must be added to the group that you want to let access the delegated account. 
 
+Based on [How to Enable Cross-Account Access to the AWS Management Console](https://blogs.aws.amazon.com/security/post/Tx70F69I9G8TYG/How-to-enable-cross-account-access-to-the-AWS-Management-Console)
+
 ![Squema for auth](static/esquema.png "squema for auth")
 
 ## Dependencies
@@ -79,12 +81,40 @@ Default output format [None]: json
 
 while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
 
+## Note about the role names
+
+When using anwbis we encourage you to use several name convenctions when creating IAM roles. The one proposed by anwbis is the following. Keep reading if you want to use another standard:
+
+### Groups in the master account
+
+```
+corp-<project>-master-<role_name>
+```
+
+where role name is tipically *admin*, *developer*, *devops*, *user* or *audit*. It has only a policy named *Delegated_Roles*
+
+### Naming in the delegated account
+
+```
+ <environment>-<project>-delegated-<role_name>
+```
+
+## Using another standard 
+
+If you dont want to use the naming convention proposed with Anwbis you need to provide the next parameters to anwbis CLI:
+
+```
+--iam_master_group: IAM group name in the master account
+--iam_policy: IAM policy name to use
+--iam_delegated_role: IAM delegated role to assume
+```
+
 ## Running the CLI
 
 you can simply type the anwbis command anywhere in your system console, you must provide always the project name (-p), the environment (-e) and the role (-r). If you want that Awnbis opens a web tab in your browser with the console of that particular account just add -b and either chrome/google-chrome/firefox/chromium depending on your favorite browser installation, i.e
 
 ```
-[luix@boxita ~]$ anwbis -p datalab -e dev -r admin -b firefox
+[luix@boxita ~]$ anwbis -p <project_name> -e dev -r admin -b firefox
 
 AnWbiS Amazon Account Access 1.2.0
 
@@ -100,6 +130,12 @@ Enter the MFA code: 471265
 
 [ OK ] Assumed the role successfully
 
+```
+
+If you are using a contractor policy (a third party assumed role with External-ID) parameters contractor (-c) and externalid (-ext) must be provided, in order to get rid of the [deputy problem](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html)
+
+```
+anwbis --profile <profile_name> -p <project_name> -e <env> -r contractor -c <contractor_role> -ext <external_id>
 ```
 
 ## Generating AccessKeys/SecretKeys

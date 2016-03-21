@@ -22,17 +22,18 @@ from requests.packages.urllib3 import disable_warnings
 #
 #          Amazon Account Access
 
-version = '1.2.2'
+version = '1.3.0'
 
 # CLI parser
 parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
 parser.add_argument('--version', action='version', version='%(prog)s'+version)
-parser.add_argument('--project', '-p', required=True, action = 'store', help = 'MANDATORY: Project to connect', default=False)
-parser.add_argument('--env', '-e', required=True, action = 'store', help = 'MANTATORY: Set environment', default=False,
+parser.add_argument('--project', '-p', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Project to connect', default=False)
+parser.add_argument('--env', '-e', required=False, action = 'store', help = 'MANTATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Set environment', default=False,
         choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
         choices=['developer', 'devops', 'user', 'admin', 'audit', 'contractor'])
 parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
+parser.add_argument('--externalid', '-ext', required=False, action = 'store', help = 'Set External-ID to use with contractor policies', default=False)
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
         choices=['eu-west-1', 'us-east-1', 'us-west-1'])
 parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
@@ -43,6 +44,9 @@ parser.add_argument('--list', '-l', required=False, action = 'store', help = 'Li
         choices=['all', 'bastion'])
 parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
 parser.add_argument('--duration', type=int, required=False, action = 'store', help = 'Optional: Token Duration. Default=3600', default=3600)
+parser.add_argument('--iam_master_group', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): Master account group name to use', default=False)
+parser.add_argument('--iam_policy', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM Policy to use', default=False)
+parser.add_argument('--iam_delegated_role', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM delegated role to use', default=False)
 parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
@@ -200,14 +204,14 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
         if not args.nomfa:            
             mfa_token = raw_input("Enter the MFA code: ")
-            if args.contractor:
+            if args.externalid:
                 assumed_role_object = sts_connection.assume_role(
                     role_arn=role_arn,
                     role_session_name=role_session_name,
                     duration_seconds=token_expiration,
                     mfa_serial_number=mfa_serial_number,
                     mfa_token=mfa_token,
-                    external_id=role
+                    external_id=externalid
                 )
             else:
                 assumed_role_object = sts_connection.assume_role(
@@ -220,12 +224,12 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
         else:
             mfa_token = None
-            if args.contractor:
+            if args.externalid:
                 assumed_role_object = sts_connection.assume_role(
                     role_arn=role_arn,
                     role_session_name=role_session_name,
                     duration_seconds=token_expiration,
-                    external_id=role
+                    external_id=externalid
                 )
             else:
                 assumed_role_object = sts_connection.assume_role(
@@ -400,6 +404,7 @@ class Anwbis:
     def token(self):
         global region
         global role
+        global externalid
         global browser
         global access_key
         global session_key
@@ -427,15 +432,25 @@ class Anwbis:
 
         # Set values from parser
 
+        if not args.project or not args.env:
+            if not args.iam_master_group or not args.iam_policy or not args.iam_delegated_role:
+                colormsg("You must provide either -p and -e flags or --iam_master_group, --iam_policy and --iam_delegated_role to use Anwbis", "error")
+                exit(1)
+
         if args.role:
-            if args.role == 'contractor' and not args.contractor:
+            if args.role == 'contractor' and not args.contractor: 
                 colormsg ("When using role contractor you must provide --contractor (-c) flag with the contractor policy to asume", "error")
                 exit(1)
-            elif args.role == 'contractor' and args.contractor:
+            elif args.role == 'contractor' and args.contractor and not args.externalid:
+                colormsg ("When using role contractor you must provide --externalid (-e) code with the ExternalID to use", "error")
+                exit(1)
+            elif args.role == 'contractor' and args.contractor and args.externalid:
                 role = args.role+'-'+args.contractor
                 verbose("Asuming contractor role: "+ args.role+'-'+args.contractor)
             else:
                 role = args.role
+        elif args.iam_delegated_role:
+            role = args.iam_delegated_role           
         else:
             role = 'developer'
 
@@ -447,13 +462,15 @@ class Anwbis:
         else:
             region = 'eu-west-1'
 
-        project = args.project
-        project = project.lower()
-        verbose("Proyect: "+project)
+        if args.project:
+            project = args.project
+            project = project.lower()
+            verbose("Proyect: "+project)
 
-        env = args.env
-        env = env.lower()
-        verbose("Environment: "+env)
+        if args.env:
+            env = args.env
+            env = env.lower()
+            verbose("Environment: "+env)
 
         if args.browser:
             browser = args.browser
@@ -467,6 +484,9 @@ class Anwbis:
             token_expiration=900
         else:
             token_expiration=args.duration
+
+        if args.externalid:
+            externalid = args.externalid
 
 
         # Get Corp Account ID and set session name
@@ -494,9 +514,21 @@ class Anwbis:
 
         # Regexp for groups and policies. Set the policy name used by your organization
 
-        group_name='corp-'+project+'-master-'+role
-        policy_name='Delegated_Roles'
-        role_filter = env+'-'+project+'-delegated-'+role
+        if args.project and args.env:
+            group_name='corp-'+project+'-master-'+role
+            policy_name='Delegated_Roles'
+            role_filter=env+'-'+project+'-delegated-'+role
+
+        # Get rid of the standard for using another policies or group names
+        elif args.iam_master_group and args.iam_policy and args.iam_delegated_role:
+            group_name=args.iam_master_group
+            policy_name=args.iam_policy
+            role_filter=args.iam_delegated_role
+            # Fix references to project, env and role in .anwbis file for non-standard use
+            role=role_filter
+            project=group_name
+            env=policy_name           
+
 
         # Step 1: Prompt user for target account ID and name of role to assume
 
@@ -528,8 +560,12 @@ class Anwbis:
                 delegated_arn.append(i)
 
         if len(delegated_arn) == 0:
-            colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error")
-            exit(1)
+            if args.role and args.project:
+                colormsg ("Sorry, you are not authorized to use the role "+role+" for project "+project, "error")
+                exit(1)
+            else:
+                colormsg ("Sorry, you are not authorized to use the role "+role_filter, "error")
+                exit(1)
 
         elif len(delegated_arn) == 1:
             account_id_from_user = delegated_arn[0].split(':')[4]
@@ -565,13 +601,19 @@ class Anwbis:
         # Assume the role
         if not args.nomfa:
             verbose("Assuming role "+ role_arn+ " using MFA device " + mfa_serial_number + "...")
-            colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
+            if args.project:
+                colormsg("Assuming role "+ role+ " from project "+ project+ " using MFA device from user "+ role_session_name+ "...", "normal")
+            elif args.iam_delegated_role:
+                colormsg("Assuming role "+ role+ " using MFA device from user "+ role_session_name+ "...", "normal")
         else:
             verbose("Assuming role "+ role_arn+ "...")
-            colormsg("Assuming role "+ role+ " from project "+ project+ " from user "+ role_session_name+ "...", "normal")
+            if args.project:
+                colormsg("Assuming role "+ role+ " from project "+ project+ " from user "+ role_session_name+ "...", "normal")
+            elif args.iam_delegated_role:
+                colormsg("Assuming role "+ role+ " from user "+ role_session_name+ "...", "normal")
+
 
         if os.path.isfile(os.path.expanduser('~/.anwbis')):
-            #print "existe"
             with open(os.path.expanduser('~/.anwbis')) as json_file:
                 root_json_data = json.load(json_file)
                 json_file.close()
@@ -596,7 +638,7 @@ class Anwbis:
 
         else:
             #print ".anwbis configuration file doesnt exists"
-            print "role is " +  role
+            verbose("role is " +  role)
             sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
         return sts_token
@@ -648,9 +690,9 @@ class Anwbis:
         session_key = token['session_key']
         session_token = token['session_token']
         self.controller()
+        exit(0)
+
 #This idiom means the below code only runs when executed from command line
 
 if __name__ == '__main__':
-    Anwbis()
-#    a = Anwbis()
-
+    a = Anwbis()
