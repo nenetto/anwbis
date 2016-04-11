@@ -163,4 +163,10 @@ This means you can use the AWS CLI with the profile flag like this
 ```
 and you will be running this command against the delegated account.
 
-If you are doing tests in local (i.e. for development), use the anwbis profile in your configuration (AWSIAMProfileCredentialsProvider) to use the credentials stored in the profile.
+Another way is to export the role to the AWS_PROFILE and/or AWS_DEFAULT_PROFILE env variables, so its used by the CLI and sdks on your computer.
+
+```
+[luix@boxita ~]$ export AWS_PROFILE=datalab-dev-admin; export AWS_DEFAULT_PROFILE=datalab-dev-admin
+```
+
+If you are doing tests or development in local, use the anwbis profile in your configuration with the AWS SDK credentials provider class, for instance in java __AWSIAMProfileCredentialsProvider__ will use the credentials stored in the profile nane you specify.
