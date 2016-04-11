@@ -81,10 +81,6 @@ Default output format [None]: json
 
 while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
 
-## Note about the role names
-
-When using anwbis we encourage you to use several name convenctions when creating IAM roles. The one proposed by anwbis is the following. Keep reading if you want to use another standard:
-
 ### Groups in the master account
 
 ```
