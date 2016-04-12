@@ -163,7 +163,9 @@ This means you can use the AWS CLI with the profile flag like this
 ```
 and you will be running this command against the delegated account.
 
-Another way is to export the role to the AWS_PROFILE and/or AWS_DEFAULT_PROFILE env variables, so its used by the CLI and sdks on your computer.
+Another way is to export the role to the AWS_PROFILE and/or AWS_DEFAULT_PROFILE env variables, so its used by the CLI and sdks on your computer. 
+
+Note that in AWS credentials chain system environment variables takes precedence over .aws/credentials file, so you need to use another tty or unset environment variables in order to use anwbis again.
 
 ```
 [luix@boxita ~]$ export AWS_PROFILE=datalab-dev-admin; export AWS_DEFAULT_PROFILE=datalab-dev-admin
