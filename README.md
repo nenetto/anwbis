@@ -7,7 +7,7 @@ Anwbis is a CLI tool to create temporary credentials to log into a AWS delegated
 
 Based on [How to Enable Cross-Account Access to the AWS Management Console](https://blogs.aws.amazon.com/security/post/Tx70F69I9G8TYG/How-to-enable-cross-account-access-to-the-AWS-Management-Console)
 
-![Squema for auth](static/esquema.png "squema for auth")
+![Squema for auth](static/delegated.png "squema for auth")
 
 ## Dependencies
 

@@ -442,7 +442,7 @@ class Anwbis:
                 colormsg ("When using role contractor you must provide --contractor (-c) flag with the contractor policy to asume", "error")
                 exit(1)
             elif args.role == 'contractor' and args.contractor and not args.externalid:
-                colormsg ("When using role contractor you must provide --externalid (-e) code with the ExternalID to use", "error")
+                colormsg ("When using role contractor you must provide --externalid (-ext) code with the ExternalID to use", "error")
                 exit(1)
             elif args.role == 'contractor' and args.contractor and args.externalid:
                 role = args.role+'-'+args.contractor
