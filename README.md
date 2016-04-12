@@ -81,10 +81,6 @@ Default output format [None]: json
 
 while doing so you will require to **PAIR** a MFA device such as your mobile device with Google Authenticator, and thats it!
 
-## Note about the role names
-
-When using anwbis we encourage you to use several name convenctions when creating IAM roles. The one proposed by anwbis is the following. Keep reading if you want to use another standard:
-
 ### Groups in the master account
 
 ```
@@ -167,4 +163,10 @@ This means you can use the AWS CLI with the profile flag like this
 ```
 and you will be running this command against the delegated account.
 
-If you are doing tests in local (i.e. for development), use the anwbis profile in your configuration (AWSIAMProfileCredentialsProvider) to use the credentials stored in the profile.
+Another way is to export the role to the AWS_PROFILE and/or AWS_DEFAULT_PROFILE env variables, so its used by the CLI and sdks on your computer.
+
+```
+[luix@boxita ~]$ export AWS_PROFILE=datalab-dev-admin; export AWS_DEFAULT_PROFILE=datalab-dev-admin
+```
+
+If you are doing tests or development in local, use the anwbis profile in your configuration with the AWS SDK credentials provider class, for instance in java __AWSIAMProfileCredentialsProvider__ will use the credentials stored in the profile nane you specify.

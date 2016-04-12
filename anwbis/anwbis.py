@@ -28,8 +28,8 @@ version = '1.3.0'
 parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
 parser.add_argument('--version', action='version', version='%(prog)s'+version)
 parser.add_argument('--project', '-p', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Project to connect', default=False)
-parser.add_argument('--env', '-e', required=False, action = 'store', help = 'MANTATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Set environment', default=False,
-        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp'])
+parser.add_argument('--env', '-e', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Set environment', default=False,
+        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp', 'qa', 'staging', 'demo'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
         choices=['developer', 'devops', 'user', 'admin', 'audit', 'contractor'])
 parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
@@ -202,7 +202,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
 def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
     try:
 
-        if not args.nomfa:            
+        if not args.nomfa:
             mfa_token = raw_input("Enter the MFA code: ")
             if args.externalid:
                 assumed_role_object = sts_connection.assume_role(
@@ -438,7 +438,7 @@ class Anwbis:
                 exit(1)
 
         if args.role:
-            if args.role == 'contractor' and not args.contractor: 
+            if args.role == 'contractor' and not args.contractor:
                 colormsg ("When using role contractor you must provide --contractor (-c) flag with the contractor policy to asume", "error")
                 exit(1)
             elif args.role == 'contractor' and args.contractor and not args.externalid:
@@ -450,7 +450,7 @@ class Anwbis:
             else:
                 role = args.role
         elif args.iam_delegated_role:
-            role = args.iam_delegated_role           
+            role = args.iam_delegated_role
         else:
             role = 'developer'
 
@@ -527,7 +527,7 @@ class Anwbis:
             # Fix references to project, env and role in .anwbis file for non-standard use
             role=role_filter
             project=group_name
-            env=policy_name           
+            env=policy_name
 
 
         # Step 1: Prompt user for target account ID and name of role to assume
