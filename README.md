@@ -134,6 +134,12 @@ If you are using a contractor policy (a third party assumed role with External-I
 anwbis --profile <profile_name> -p <project_name> -e <env> -r contractor -c <contractor_role> -ext <external_id>
 ```
 
+You can use Anwbis from an EC2 instance profile with the IAM role associated with the instance. Continuous Integration/Configuration Management platforms like Jenkins or Terraform can use this feature. In order to do it you need to have a Policy in the role (named 'Delegated_Roles' or the one you are going to use with the parameter --iam_delegated_role). It is advised to use an External-ID condition in order to give some kind of security about who can assume the role.
+
+```
+anwbis  -p <project_name> -e <env> -r <role> -ext <external_id> --from_ec2_role --nomfa --refresh
+```
+
 ## Generating AccessKeys/SecretKeys
 
 Everytime you run Anwbis and succesfully generate a new session token, the role PROJECT-ENV-ROLE on your boto credentials (~/.aws/credentials) will be updated/created... i.e.
