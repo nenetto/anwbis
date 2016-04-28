@@ -22,7 +22,7 @@ from requests.packages.urllib3 import disable_warnings
 #
 #          Amazon Account Access
 
-version = '1.4.0'
+version = '1.5.0'
 
 # CLI parser
 parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
@@ -48,6 +48,7 @@ parser.add_argument('--iam_master_group', required=False, action = 'store', help
 parser.add_argument('--iam_policy', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM Policy to use', default=False)
 parser.add_argument('--iam_delegated_role', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM delegated role to use', default=False)
 parser.add_argument('--from_ec2_role', required=False, action='store_true', help='Optional: use IAM role credentials stored in EC2 instead of users (advice: combine it with externalid)', default=False)
+parser.add_argument('--get_session', required=False, action='store_true', help='Optional: use STS get_session_token)', default=False)
 parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
 parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
 parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
@@ -274,6 +275,77 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
+def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
+    try:
+
+        if not args.nomfa:
+            mfa_token = raw_input("Enter the MFA code: ")
+            sts_session = sts_connection.get_session_token(
+                duration=token_expiration,
+                mfa_serial_number=mfa_serial_number,
+                mfa_token=mfa_token
+            )
+
+            session_sts_connection = STSConnection(aws_access_key_id=sts_session.access_key,
+                                                   aws_secret_access_key=sts_session.secret_key,
+                                                   security_token=sts_session.session_token)
+
+            if args.externalid:
+                assumed_role_object = session_sts_connection.assume_role(
+                    role_arn=role_arn,
+
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                    external_id=externalid
+                )
+            #else:
+                #assumed_role_object = session_sts_connection.assume_role(
+                #    role_arn=role_arn,
+                #    role_session_name=role_session_name,
+                #    duration_seconds=token_expiration,
+                #)
+        else:
+             colormsg ("When using get_session you must use MFA", "error")
+             exit(1)
+
+    except Exception, e:
+        colormsg ("There was an error assuming role", "error")
+        verbose(e)
+        exit(1)
+
+    colormsg ("Assumed the role successfully", "ok")
+
+    # Format resulting temporary credentials into a JSON block using
+    # known field names.
+    access_key = sts_session.access_key
+    session_key = sts_session.secret_key
+    session_token = sts_session.session_token
+    expiration = sts_session.expiration
+
+    login_to_fedaccount(access_key, session_key, session_token, role_session_name)
+
+    save_credentials(access_key, session_key, session_token, role_session_name, "session-"+project_name, environment_name, role_name, region)
+
+    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name, region)
+
+    #and save them on the CLI config file .aws/credentials
+
+    save_cli_credentials(access_key, session_key, session_token, '-'.join(["session-"+project_name, environment_name, role_name]), region)
+
+    if args.stdout:
+        print ""
+        print "If you want to use your credentials from the environment with an external Tool (for instance, Terraform), you can use the following instructions:"
+        print "WARNING: If you use it in the same shell as anwbis exported variables takes precedence over the .aws/credentials, so use it carefully"
+        print ""
+        print "export AWS_ACCESS_KEY_ID='%s'" % access_key
+        print "export AWS_SECRET_ACCESS_KEY='%s'" % session_key
+        print "export AWS_SESSION_TOKEN='%s'" % session_token
+        print "export AWS_DEFAULT_REGION='%s'" % region
+        print "Expiration='%s'" % expiration
+        print ""
+
+    return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
+
 def save_cli_credentials(access_key, session_key, session_token, section_name, region):
 
     import ConfigParser
@@ -486,9 +558,11 @@ class Anwbis:
         else:
             browser = 'none'
 
-
         if args.duration > 3600:
-            token_expiration=3600
+            if not args.get_session:
+                token_expiration=3600
+            elif args.duration > 129600:
+                token_expiration=129600
         elif args.duration < 900:
             token_expiration=900
         else:
@@ -671,7 +745,10 @@ class Anwbis:
                     if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
 
                         #print "token has expired"
-                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                        if not args.get_session:
+                            sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                        else:
+                            sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
                     else:
                         #print "token has not expired, trying to login..."
@@ -679,12 +756,18 @@ class Anwbis:
                         sts_token = {'access_key':json_data["access_key"], 'session_key':json_data["session_key"], 'session_token': json_data["session_token"], 'role_session_name': json_data["role_session_name"]}
 
                 else:
-                    sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                    if not args.get_session:
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                    else:
+                        sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
         else:
             #print ".anwbis configuration file doesnt exists"
             verbose("role is " +  role)
-            sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+            if not args.get_session:
+                sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+            else:
+                sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
         return sts_token
 
