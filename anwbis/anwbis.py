@@ -563,11 +563,13 @@ class Anwbis:
         else:
             browser = 'none'
 
+        # Max token duration = 1h, session token = 8h
+
         if args.duration > 3600:
             token_expiration=3600
             if args.get_session:
-                if args.duration > 129600:
-                    session_token_expiration = 129600
+                if args.duration > 28800:
+                    session_token_expiration = 28800
         elif args.duration < 900:
             token_expiration=900
             if args.get_session:
@@ -577,7 +579,7 @@ class Anwbis:
             if args.get_session and not args.duration:
                 session_token_expiration=token_expiration
             else:
-                session_token_expiration='43200'
+                session_token_expiration=28800
 
 
         if args.externalid:

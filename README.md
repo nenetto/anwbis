@@ -140,12 +140,11 @@ You can use Anwbis from an EC2 instance profile with the IAM role associated wit
 anwbis  -p <project_name> -e <env> -r <role> -ext <external_id> --from_ec2_role --nomfa --refresh
 ```
 
-## Using get_session_token for credentials up to 36 hours
-
+## Using get_session_token for credentials up to 8 hours
 
 By default, Anwbis uses the sts method assume_role to get the credentials. As cross account delegation gives a maximum of 1 hour of valid credentials you must refresh the token calling Anwbis. If you need longer credentials you can override the MFA input login with longer get_session_token credentials in your corporate account.
 
-For using this you must give your user permission to call to STS get_session_token. This gives you a set of temporary credentials with a default value of 12 hours and a maximum of 36 until being prompt for another MFA code. 
+For using this you must give your user permission to call to STS get_session_token. This gives you a set of temporary credentials with a default value of 8 hours until being prompt for another MFA code. 
 
 ```
 anwbis --profile <profile_name> -p <project_name> -e <env> -r <role> --get_session
