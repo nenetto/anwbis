@@ -275,13 +275,13 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
 
     return { 'access_key':access_key, 'session_key': session_key, 'session_token': session_token, 'role_session_name': role_session_name }
 
-def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
+def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration, session_token_expiration):
     try:
 
         if not args.nomfa:
             mfa_token = raw_input("Enter the MFA code: ")
             sts_session = sts_connection.get_session_token(
-                duration=token_expiration,
+                duration=session_token_expiration,
                 mfa_serial_number=mfa_serial_number,
                 mfa_token=mfa_token
             )
@@ -298,12 +298,12 @@ def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_
                     duration_seconds=token_expiration,
                     external_id=externalid
                 )
-            #else:
-                #assumed_role_object = session_sts_connection.assume_role(
-                #    role_arn=role_arn,
-                #    role_session_name=role_session_name,
-                #    duration_seconds=token_expiration,
-                #)
+            else:
+                assumed_role_object = session_sts_connection.assume_role(
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    duration_seconds=token_expiration,
+                )
         else:
              colormsg ("When using get_session you must use MFA", "error")
              exit(1)
@@ -324,13 +324,18 @@ def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_
 
     login_to_fedaccount(access_key, session_key, session_token, role_session_name)
 
-    save_credentials(access_key, session_key, session_token, role_session_name, "session-"+project_name, environment_name, role_name, region)
+    if not args.profile:
+        credential_profile='default'
+    else:
+        credential_profile=args.profile
 
-    save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name, region)
+    save_credentials(access_key, session_key, session_token, role_session_name, 'corp', 'session', credential_profile, region)
+
+    #save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name, region)
 
     #and save them on the CLI config file .aws/credentials
 
-    save_cli_credentials(access_key, session_key, session_token, '-'.join(["session-"+project_name, environment_name, role_name]), region)
+    save_cli_credentials(access_key, session_key, session_token, '-'.join(['corp','session',credential_profile]), region)
 
     if args.stdout:
         print ""
@@ -439,24 +444,24 @@ def login_to_fedaccount(access_key, session_key, session_token, role_session_nam
     # generated URL.
     chrome_path = '/usr/bin/google-chrome %s'
     firefox_path = '/usr/bin/firefox %s'
-    chromium_path = '/usr/bin/chromium %s'
+    chromium_path = '/usr/bin/chromium-browser %s'
     if browser == 'firefox':
         try:
-            webbrowser.get(firefox_path).open(request_url)
+            webbrowser.get(firefox_path).open(request_url,new=0)
         except Exception, e:
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
             exit(1)
     elif browser == 'chrome':
         try:
-            webbrowser.get(chrome_path).open(request_url)
+            webbrowser.get(chrome_path).open(request_url,new=0)
         except Exception, e:
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
             exit(1)
     elif browser == 'chromium':
         try:
-            webbrowser.get(chromium_path).open(request_url)
+            webbrowser.get(chromium_path).open(request_url,new=0)
         except Exception, e:
             colormsg ("There was an error while open your browser", "error")
             verbose(e)
@@ -559,14 +564,21 @@ class Anwbis:
             browser = 'none'
 
         if args.duration > 3600:
-            if not args.get_session:
-                token_expiration=3600
-            elif args.duration > 129600:
-                token_expiration=129600
+            token_expiration=3600
+            if args.get_session:
+                if args.duration > 129600:
+                    session_token_expiration = 129600
         elif args.duration < 900:
             token_expiration=900
+            if args.get_session:
+                session_token_expiration=token_expiration
         else:
             token_expiration=args.duration
+            if args.get_session and not args.duration:
+                session_token_expiration=token_expiration
+            else:
+                session_token_expiration='43200'
+
 
         if args.externalid:
             externalid = args.externalid
@@ -730,45 +742,36 @@ class Anwbis:
                 colormsg("Assuming role "+ role+ " from project "+ project+ " from user "+ role_session_name+ "...", "normal")
             elif args.iam_delegated_role:
                 colormsg("Assuming role "+ role+ " from user "+ role_session_name+ "...", "normal")
+        if args.get_session:
+                sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration, session_token_expiration)
+        else:
+            if os.path.isfile(os.path.expanduser('~/.anwbis')):
 
+                with open(os.path.expanduser('~/.anwbis')) as json_file:
+                    root_json_data = json.load(json_file)
+                    json_file.close()
 
-        if os.path.isfile(os.path.expanduser('~/.anwbis')):
-            with open(os.path.expanduser('~/.anwbis')) as json_file:
-                root_json_data = json.load(json_file)
-                json_file.close()
+                    if project in root_json_data and env in root_json_data[project] and role in root_json_data[project][env]:
+                        json_data = root_json_data[project][env][role]
+                        anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
-                if project in root_json_data and env in root_json_data[project] and role in root_json_data[project][env]:
-                    json_data = root_json_data[project][env][role]
-                    anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
+                        #check if the token has expired
+                        if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
 
-                    #check if the token has expired
-                    if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
-
-                        #print "token has expired"
-                        if not args.get_session:
+                            verbose("token has expired")
                             sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
-                        else:
-                            sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
 
-                    else:
-                        #print "token has not expired, trying to login..."
+                        else:
+                            verbose("token has not expired, trying to login...")
                         login_to_fedaccount(json_data["access_key"], json_data["session_key"], json_data["session_token"], json_data["role_session_name"])
                         sts_token = {'access_key':json_data["access_key"], 'session_key':json_data["session_key"], 'session_token': json_data["session_token"], 'role_session_name': json_data["role_session_name"]}
 
-                else:
-                    if not args.get_session:
-                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
                     else:
-                        sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
-
-        else:
-            #print ".anwbis configuration file doesnt exists"
-            verbose("role is " +  role)
-            if not args.get_session:
-                sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
             else:
-                sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
-
+                #print ".anwbis configuration file doesnt exists"
+                verbose("role is " +  role)
+                sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
         return sts_token
 
     def controller(self):

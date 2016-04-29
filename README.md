@@ -140,6 +140,26 @@ You can use Anwbis from an EC2 instance profile with the IAM role associated wit
 anwbis  -p <project_name> -e <env> -r <role> -ext <external_id> --from_ec2_role --nomfa --refresh
 ```
 
+## Using get_session_token for credentials up to 36 hours
+
+
+By default, Anwbis uses the sts method assume_role to get the credentials. As cross account delegation gives a maximum of 1 hour of valid credentials you must refresh the token calling Anwbis. If you need longer credentials you can override the MFA input login with longer get_session_token credentials in your corporate account.
+
+For using this you must give your user permission to call to STS get_session_token. This gives you a set of temporary credentials with a default value of 12 hours and a maximum of 36 until being prompt for another MFA code. 
+
+```
+anwbis --profile <profile_name> -p <project_name> -e <env> -r <role> --get_session
+```
+This saves into your ~/.aws/credentials a temporary set of credentials under the profile name **corp-session-<profile_name>**. If you didn't use the --profile option the name is **corp-session-default**.
+
+With this credentials you can use Anwbis without being prompt for the MFA if the token is not expired:
+
+```
+anwbis --profile <corp_session_profile> -p <project_name> -e dev -r devops -b chrome
+```
+
+You can use it even with the AWS CLI or other SDKs or tools that uses the AWS profile.
+
 ## Generating AccessKeys/SecretKeys
 
 Everytime you run Anwbis and succesfully generate a new session token, the role PROJECT-ENV-ROLE on your boto credentials (~/.aws/credentials) will be updated/created... i.e.
