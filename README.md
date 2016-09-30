@@ -154,10 +154,14 @@ This saves into your ~/.aws/credentials a temporary set of credentials under the
 With this credentials you can use Anwbis without being prompt for the MFA if the token is not expired:
 
 ```
-anwbis --profile <corp_session_profile> -p <project_name> -e dev -r devops -b chrome
+anwbis --profile <corp_session_profile> -p <project_name> -e dev -r devops --nomfa -b chrome
 ```
 
-You can use it even with the AWS CLI or other SDKs or tools that uses the AWS profile.
+You can use it even with the AWS CLI or other SDKs or tools that uses the AWS profile. Simple use it with the project generated profile:
+
+```
+aws --profile <project-env-role> s3 ls
+```
 
 ## Generating AccessKeys/SecretKeys
 
