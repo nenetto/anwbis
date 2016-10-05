@@ -95,6 +95,8 @@ where role name is tipically *admin*, *developer*, *devops*, *user* or *audit*. 
  <environment>-<project>-delegated-<role_name>
 ```
 
+Please note that this role must be created as type "Role for Cross-Account Access" with subtype "Provide access between AWS accounts you own"
+
 ## Using another standard 
 
 If you dont want to use the naming convention proposed with Anwbis you need to provide the next parameters to anwbis CLI:
