@@ -35,7 +35,7 @@ parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Se
 parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
 parser.add_argument('--externalid', '-ext', required=False, action = 'store', help = 'Set External-ID to use with contractor policies', default=False)
 parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
-        choices=['eu-west-1', 'us-east-1', 'us-west-1'])
+        choices=['eu-west-1', 'us-east-1', 'us-west-1', 'eu-central-1'])
 parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
 parser.add_argument('--refresh', required=False, action='store_true', help='Refresh token even if there is a valid one', default=False)
 parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
