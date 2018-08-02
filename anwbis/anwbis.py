@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
 parser.add_argument('--version', action='version', version='%(prog)s'+version)
 parser.add_argument('--project', '-p', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Project to connect', default=False)
 parser.add_argument('--env', '-e', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Set environment', default=False,
-        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp', 'qa', 'staging', 'demo', 'piloto', 'test'])
+        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp', 'qa', 'staging', 'demo', 'piloto', 'test', 'live', 'play', 'work'])
 parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
         choices=['developer', 'devops', 'user', 'admin', 'audit', 'contractor'])
 parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
