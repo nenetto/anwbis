@@ -385,7 +385,7 @@ def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_
 
 def save_cli_credentials(access_key, session_key, session_token, section_name, region):
 
-    config = ConfigParser.RawConfigParser()
+    config = ConfigParser()
     home = os.path.expanduser("~")
     basedir = os.path.dirname(home+'/.aws/credentials')
     if not os.path.exists(basedir):
@@ -396,16 +396,16 @@ def save_cli_credentials(access_key, session_key, session_token, section_name, r
     config.read(os.path.expanduser('~/.aws/credentials'))
 
     if not config.has_section(section_name):
-        config.add_section(section_name)
+        config[section_name] = {}
 
-    config.set(section_name, 'aws_access_key_id', access_key)
-    config.set(section_name, 'aws_secret_access_key', session_key)
-    config.set(section_name, 'aws_session_token', session_token)
-    config.set(section_name, 'aws_security_token', session_token)
-    config.set(section_name, 'region', region)
+    config[section_name]['aws_access_key_id'] = access_key
+    config[section_name]['aws_secret_access_key'] = session_key
+    config[section_name]['aws_session_token'] = session_token
+    config[section_name]['aws_security_token'] = session_token
+    config[section_name]['region'] = region
 
     # Writing our configuration file to 'example.cfg'
-    with open(os.path.expanduser('~/.aws/credentials'), 'wb') as configfile:
+    with open(os.path.expanduser('~/.aws/credentials'), 'w') as configfile:
         config.write(configfile)
 
 
@@ -580,12 +580,12 @@ class Anwbis:
 
         if args.project:
             project = args.project
-            project = project.lower()
+            #project = project.lower()
             verbose("Proyect: "+project)
 
         if args.env:
             env = args.env
-            env = env.lower()
+            #env = env.lower()
             verbose("Environment: "+env)
 
         if args.browser:
@@ -785,6 +785,7 @@ class Anwbis:
                         anwbis_last_timestamp = json_data["anwbis_last_timestamp"]
 
                         # check if the token has expired
+                        # TODO: Check if token is written in credentials
                         if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
 
                             verbose("token has expired")
