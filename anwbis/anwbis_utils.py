@@ -38,49 +38,9 @@ global list_instances
 global project
 global env
 
-# CLI parser
-parser = argparse.ArgumentParser(description='AnWbiS: AWS Account Access')
-parser.add_argument('--version', action='version', version='%(prog)s'+version)
-parser.add_argument('--project', '-p', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Project to connect', default=False)
-parser.add_argument('--env', '-e', required=False, action = 'store', help = 'MANDATORY (if you are not using --iam_master_group, --iam_policy and --iam_delegated_role): Set environment', default=False,
-        choices=['dev', 'pre', 'prepro', 'pro', 'sbx', 'val', 'corp', 'qa', 'staging', 'demo', 'piloto', 'test'])
-parser.add_argument('--role', '-r', required=False, action = 'store', help = 'Set role to use', default=False,
-        choices=['developer', 'devops', 'user', 'admin', 'audit', 'contractor'])
-parser.add_argument('--contractor', '-c', required=False, action = 'store', help = 'Set role to use with contractor policies', default=False)
-parser.add_argument('--externalid', '-ext', required=False, action = 'store', help = 'Set External-ID to use with contractor policies', default=False)
-parser.add_argument('--region', required=False, action = 'store', help = 'Set region for EC2', default=False,
-        choices=['eu-west-1', 'us-east-1', 'us-west-1', 'eu-central-1'])
-parser.add_argument('--nomfa', required=False, action='store_true', help='Disables Multi-Factor Authenticacion', default=False)
-parser.add_argument('--refresh', required=False, action='store_true', help='Refresh token even if there is a valid one', default=False)
-parser.add_argument('--browser', '-b', required=False, action = 'store', help = 'Set browser to use', default=False,
-            choices=['firefox','chrome','link','default', 'chromium'])
-parser.add_argument('--list', '-l', required=False, action = 'store', help = 'List available instances', default=False,
-        choices=['all', 'bastion'])
-parser.add_argument('--profile', '-P', required=False, action = 'store', help = 'Optional: IAM credentials profile to use.', default=False)
-parser.add_argument('--duration', type=int, required=False, action = 'store', help = 'Optional: Token Duration. Default=3600', default=3600)
-parser.add_argument('--iam_master_group', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): Master account group name to use', default=False)
-parser.add_argument('--iam_policy', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM Policy to use', default=False)
-parser.add_argument('--iam_delegated_role', required=False, action = 'store', help = 'MANDATORY (if you are not using -p -e and -r flags): IAM delegated role to use', default=False)
-parser.add_argument('--from_ec2_role', required=False, action='store_true', help='Optional: use IAM role credentials stored in EC2 instead of users (advice: combine it with externalid)', default=False)
-parser.add_argument('--get_session', required=False, action='store_true', help='Optional: use STS get_session_token)', default=False)
-parser.add_argument('--stdout', required=False, action='store_true', help='Optional: get export commands to set environment variables', default=False)
-parser.add_argument('--teleport', '-t', required=False, action = 'store', help = 'Teleport to instance', default=False)
-parser.add_argument('--filter', '-f', required=False, action = 'store', help = 'Filter instance name', default=False)
-parser.add_argument('--goodbye', '-g', required=False, action='store_true', help = 'There are no easter eggs in this code, but AnWbiS can say goodbye', default=False)
-parser.add_argument('--verbose', '-v', action = 'store_true', help = 'prints verbosely', default=False)
-parser.add_argument('--project-tag', required=False, action='store',
-                    help='Optional: Project tag for filtering instances', default='')
-parser.add_argument('--bastion-tag', required=False, action='store',
-                    help='Optional: Bastion tag for filtering instances', default='Bastion')
-parser.add_argument('--name-tag', required=False, action='store',
-                    help='Optional: Name tag for filtering instances', default='')
 
-
-args = parser.parse_args()
-
-
-def verbose(msg):
-    if args.verbose:
+def verbose(msg, verbose=True):
+    if verbose:
         print(Fore.BLUE + ''.join(map(str, (msg))))
         print(Fore.RESET + Back.RESET + Style.RESET_ALL)
 
@@ -119,7 +79,7 @@ def output_lines(lines):
         print(line)
 
 
-def list_function(list_instances, access_key, session_key, session_token, regions):
+def list_function(list_instances, access_key, session_key, session_token, regions, args):
 
     ec2_conn = None
     try:
@@ -225,7 +185,7 @@ def save_credentials(access_key,  session_key,  session_token, role_session_name
             json.dump(data, json_file)
 
 
-def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration):
+def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration, args):
     try:
         if not args.nomfa:
             mfa_token = input("Enter the MFA code: ")
@@ -276,7 +236,7 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
     session_key = assumed_role_object.credentials.secret_key
     session_token = assumed_role_object.credentials.session_token
 
-    login_to_fedaccount(access_key, session_key, session_token, role_session_name)
+    login_to_fedaccount(access_key, session_key, session_token, role_session_name, args=args)
 
     save_credentials(access_key, session_key, session_token, role_session_name, project_name, environment_name, role_name, region)
 
@@ -301,7 +261,7 @@ def get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name
             'role_session_name': role_session_name}
 
 
-def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration, session_token_expiration):
+def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project_name, environment_name, role_name, token_expiration, session_token_expiration, args):
     global access_key
     global session_key
     global session_token
@@ -351,7 +311,7 @@ def get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_
     session_token = sts_session.session_token
     expiration = sts_session.expiration
 
-    login_to_fedaccount(access_key, session_key, session_token, role_session_name)
+    login_to_fedaccount(access_key, session_key, session_token, role_session_name, args=args)
 
     if not args.profile:
         credential_profile = 'default'
@@ -409,7 +369,7 @@ def save_cli_credentials(access_key, session_key, session_token, section_name, r
         config.write(configfile)
 
 
-def login_to_fedaccount(access_key, session_key, session_token, role_session_name):
+def login_to_fedaccount(access_key, session_key, session_token, role_session_name, args):
 
     json_temp_credentials = '{'
     json_temp_credentials += '"sessionId":"' + access_key + '",'
@@ -527,7 +487,7 @@ class Anwbis:
         global filter_name
 
         # Welcome
-        if args.verbose:
+        if self.args.verbose:
             print("")
             print("             __          ___     _  _____ ")
             print("     /\      \ \        / / |   (_)/ ____|")
@@ -546,84 +506,84 @@ class Anwbis:
 
         # Set values from parser
 
-        if not args.project or not args.env:
-            if not args.iam_master_group or not args.iam_policy or not args.iam_delegated_role and not args.from_ec2_role:
+        if not self.args.project or not self.args.env:
+            if not self.args.iam_master_group or not self.args.iam_policy or not self.args.iam_delegated_role and not self.args.from_ec2_role:
                 colormsg("You must provide either -p and -e flags or --iam_master_group, --iam_policy and --iam_delegated_role to use Anwbis", "error")
                 exit(1)
-            elif args.from_ec2_role and not args.iam_delegated_role:
+            elif self.args.from_ec2_role and not self.args.iam_delegated_role:
                 colormsg("When using credentials stored in EC2 roles you must use either -p and -e flags or --iam_delegated_role to use Anwbis", "error")
                 exit(1)
-        if args.role:
-            if args.role == 'contractor' and not args.contractor:
+        if self.args.role:
+            if self.args.role == 'contractor' and not self.args.contractor:
                 colormsg ("When using role contractor you must provide --contractor (-c) flag with the contractor policy to asume", "error")
                 exit(1)
-            elif args.role == 'contractor' and args.contractor and not args.externalid:
+            elif self.args.role == 'contractor' and self.args.contractor and not self.args.externalid:
                 colormsg ("When using role contractor you must provide --externalid (-ext) code with the ExternalID to use", "error")
                 exit(1)
-            elif args.role == 'contractor' and args.contractor and args.externalid:
-                role = args.role+'-'+args.contractor
-                verbose("Asuming contractor role: "+ args.role+'-'+args.contractor)
+            elif self.args.role == 'contractor' and self.args.contractor and self.args.externalid:
+                role = self.args.role+'-'+self.args.contractor
+                verbose("Asuming contractor role: "+ self.args.role+'-'+self.args.contractor)
             else:
-                role = args.role
-        elif args.iam_delegated_role:
-            role = args.iam_delegated_role
+                role = self.args.role
+        elif self.args.iam_delegated_role:
+            role = self.args.iam_delegated_role
         else:
             role = 'developer'
 
-        if args.profile:
-            profile_name = args.profile
+        if self.args.profile:
+            profile_name = self.args.profile
 
-        if args.region:
-            region = args.region
+        if self.args.region:
+            region = self.args.region
         else:
             region = 'eu-west-1'
 
-        if args.project:
-            project = args.project
+        if self.args.project:
+            project = self.args.project
             #project = project.lower()
             verbose("Proyect: "+project)
 
-        if args.env:
-            env = args.env
+        if self.args.env:
+            env = self.args.env
             #env = env.lower()
             verbose("Environment: "+env)
 
-        if args.browser:
-            browser = args.browser
+        if self.args.browser:
+            browser = self.args.browser
         else:
             browser = 'none'
 
         # Max token duration = 1h, session token = 8h
 
-        if args.duration > 3600:
+        if self.args.duration > 3600:
             token_expiration = 3600
-            if args.get_session:
-                if args.duration > 28800:
+            if self.args.get_session:
+                if self.args.duration > 28800:
                     session_token_expiration = 28800
-        elif args.duration < 900:
+        elif self.args.duration < 900:
             token_expiration = 900
-            if args.get_session:
+            if self.args.get_session:
                 session_token_expiration = token_expiration
         else:
-            token_expiration = args.duration
-            if args.get_session and not args.duration:
+            token_expiration = self.args.duration
+            if self.args.get_session and not self.args.duration:
                 session_token_expiration = token_expiration
             else:
                 session_token_expiration = 28800
 
-        if args.externalid:
-            externalid = args.externalid
+        if self.args.externalid:
+            externalid = self.args.externalid
 
         # Get Corp Account ID and set session name
 
-        if args.profile:
-            iam_connection = IAMConnection(profile_name=args.profile)
+        if self.args.profile:
+            iam_connection = IAMConnection(profile_name=self.args.profile)
         else:
             iam_connection = IAMConnection()
 
         # role_session_name=iam_connection.get_user()['get_user_response']['get_user_result']['user']['user_name']
         try:
-            if args.from_ec2_role:
+            if self.args.from_ec2_role:
                 request_url = "http://169.254.169.254/latest/meta-data/iam/info/"
                 r = requests.get(request_url)
                 profilearn = json.loads(r.text)["InstanceProfileArn"]
@@ -639,7 +599,7 @@ class Anwbis:
 
         # account_id=iam_connection.get_user()['get_user_response']['get_user_result']['user']['arn'].split(':')[4]
         try:
-            if args.from_ec2_role:
+            if self.args.from_ec2_role:
                 account_id = profilearn = json.loads(r.text)["InstanceProfileArn"].split(':')[4]
                 account_id_from_user = account_id
                 role_name_from_user = profilename
@@ -652,8 +612,8 @@ class Anwbis:
 
         # Regexp for groups and policies. Set the policy name used by your organization
         group_name = None
-        if args.project and args.env:
-            if not args.from_ec2_role:
+        if self.args.project and self.args.env:
+            if not self.args.from_ec2_role:
                 group_name = 'corp-'+project+'-master-'+role
                 policy_name = 'Delegated_Roles'
                 role_filter = env+'-'+project+'-delegated-'+role
@@ -663,16 +623,16 @@ class Anwbis:
                 role_filter = env+'-'+project+'-delegated-'+role
 
         # Get rid of the standard for using another policies or group names
-        elif args.from_ec2_role and args.iam_delegated_role:
-            role_filter = args.iam_delegated_role
+        elif self.args.from_ec2_role and self.args.iam_delegated_role:
+            role_filter = self.args.iam_delegated_role
             # Fix references to project, env and role in .anwbis file for non-standard use
             role = role_filter
             project = group_name
             env = "ec2-role"
-        elif args.iam_master_group and args.iam_policy and args.iam_delegated_role:
-            group_name = args.iam_master_group
-            policy_name = args.iam_policy
-            role_filter = args.iam_delegated_role
+        elif self.args.iam_master_group and self.args.iam_policy and self.args.iam_delegated_role:
+            group_name = self.args.iam_master_group
+            policy_name = self.args.iam_policy
+            role_filter = self.args.iam_delegated_role
             # Fix references to project, env and role in .anwbis file for non-standard use
             role = role_filter
             project = group_name
@@ -687,7 +647,7 @@ class Anwbis:
         delegated_arn = []
 
         try:
-            if not args.from_ec2_role:
+            if not self.args.from_ec2_role:
                 policy = iam_connection.get_group_policy(group_name, policy_name)
             else:
                 # policy = iam_connection.get_instance_profile(profilename)
@@ -698,7 +658,7 @@ class Anwbis:
             verbose(e)
             exit(1)
 
-        if not args.from_ec2_role:
+        if not self.args.from_ec2_role:
             policy = policy.get_group_policy_response.get_group_policy_result.policy_document
             policy = urllib.parse.unquote(policy)
             group_policy.append(config_line_policy("iam:grouppolicy", group_name, policy_name, policy))
@@ -720,7 +680,7 @@ class Anwbis:
                 delegated_arn.append(i)
 
         if len(delegated_arn) == 0:
-            if args.role and args.project:
+            if self.args.role and self.args.project:
                 colormsg("Sorry, you are not authorized to use the role " + role + " for project "+ project, "error")
                 exit(1)
             else:
@@ -738,7 +698,7 @@ class Anwbis:
         colormsg("You are authenticated as " + role_session_name, "ok")
 
         # MFA
-        if not args.nomfa:
+        if not self.args.nomfa:
             mfa_devices_r = iam_connection.get_all_mfa_devices(role_session_name)
             if mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices:
                 mfa_serial_number =  mfa_devices_r.list_mfa_devices_response.list_mfa_devices_result.mfa_devices[0].serial_number
@@ -753,26 +713,26 @@ class Anwbis:
         role_arn += role_name_from_user
 
         # Connect to AWS STS and then call AssumeRole. This returns temporary security credentials.
-        if args.profile:
-            sts_connection = STSConnection(profile_name=args.profile)
+        if self.args.profile:
+            sts_connection = STSConnection(profile_name=self.args.profile)
         else:
             sts_connection = STSConnection()
 
         # Assume the role
-        if not args.nomfa:
+        if not self.args.nomfa:
             verbose("Assuming role " + role_arn + " using MFA device " + mfa_serial_number + "...")
-            if args.project:
+            if self.args.project:
                 colormsg("Assuming role " + role + " from project " + project + " using MFA device from user " + role_session_name + "...", "normal")
-            elif args.iam_delegated_role:
+            elif self.args.iam_delegated_role:
                 colormsg("Assuming role " + role + " using MFA device from user " + role_session_name+ "...", "normal")
         else:
             verbose("Assuming role " + role_arn + "...")
-            if args.project:
+            if self.args.project:
                 colormsg("Assuming role " + role + " from project "+ project+ " from user " + role_session_name + "...", "normal")
-            elif args.iam_delegated_role:
+            elif self.args.iam_delegated_role:
                 colormsg("Assuming role " + role + " from user "+ role_session_name + "...", "normal")
-        if args.get_session:
-                sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration, session_token_expiration)
+        if self.args.get_session:
+                sts_token = get_session_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration, session_token_expiration, self.args)
         else:
             if os.path.isfile(os.path.expanduser('~/.anwbis')):
 
@@ -786,7 +746,7 @@ class Anwbis:
 
                         # check if the token has expired
                         # TODO: Check if token is written in credentials
-                        if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or args.refresh:
+                        if int(time.time()) - int(anwbis_last_timestamp) > token_expiration or self.args.refresh:
 
                             verbose("token has expired")
                             sts_token = get_sts_token(sts_connection,
@@ -796,25 +756,27 @@ class Anwbis:
                                                       project,
                                                       env,
                                                       role,
-                                                      token_expiration)
+                                                      token_expiration,
+                                                      self.args)
 
                         else:
                             verbose("token has not expired, trying to login...")
                         login_to_fedaccount(json_data["access_key"],
                                             json_data["session_key"],
                                             json_data["session_token"],
-                                            json_data["role_session_name"])
+                                            json_data["role_session_name"],
+                                            args=self.args)
                         sts_token = {'access_key': json_data["access_key"],
                                      'session_key':json_data["session_key"],
                                      'session_token': json_data["session_token"],
                                      'role_session_name': json_data["role_session_name"]}
 
                     else:
-                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                        sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration, self.args)
             else:
                 # print ".anwbis configuration file doesn't exists"
                 verbose("role is " + role)
-                sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration)
+                sts_token = get_sts_token(sts_connection, role_arn, mfa_serial_number, role_session_name, project, env, role, token_expiration, self.args)
         return sts_token
 
     def controller(self):
@@ -825,27 +787,27 @@ class Anwbis:
         global project
         global env
 
-        if args.list:
-            list_instances = args.list
-            if args.filter:
-                filter_name=args.filter
+        if self.args.list:
+            list_instances = self.args.list
+            if self.args.filter:
+                filter_name=self.args.filter
         else:
             list_instances = 'none'
 
-        if args.teleport:
-            teleport_instance = args.teleport
-            if args.filter:
-                filter_name=args.filter
+        if self.args.teleport:
+            teleport_instance = self.args.teleport
+            if self.args.filter:
+                filter_name=self.args.filter
         else:
             teleport = 'none'
 
-        if args.list:
-            list_function(list_instances, access_key, session_key, session_token, region)
+        if self.args.list:
+            list_function(list_instances, access_key, session_key, session_token, region, args=self.args)
 
         # Teleport parser for connecting to bastion
 
-        if args.teleport:
-            bastions = list_function('teleport', access_key, session_key, session_token)
+        if self.args.teleport:
+            bastions = list_function('teleport', access_key, session_key, session_token, args=self.args)
             if len(bastions) == 0:
                 colormsg("Sorry, there are no bastions to connect in project "+project+" for the environment "+env, "error")
             elif len(bastions) == 1:
@@ -853,14 +815,16 @@ class Anwbis:
                     print(i)
             else:
                 colormsg("There are more than one bastion in project "+project+" for the environment "+env, "normal")
-                list_function('bastion')
+                list_function('bastion', args=self.args)
                 colormsg("You can connect to the desired bastion using -t <IP> (--teleport <IP>)", "normal")
 
     # Runs all the functions
-    def __init__(self):
+    def __init__(self, args):
         global access_key
         global session_key
         global session_token
+
+        self.args = args
 
         token = self.token()
         access_key = token['access_key']
